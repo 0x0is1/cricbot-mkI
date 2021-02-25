@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import argsort
 import requests
 import base64
 import io
@@ -7,14 +8,16 @@ from PIL import Image, ImageDraw
 from math import cos, sin, radians
 
 
-def fetch(ids: str, urlindex: int, ptype: str, inning_index: int, mformat: str, dtype: str):
+def urlprov(ids: str, urlindex: int, ptype: str, inning_index: int, mformat: str, dtype: str):
     base_url = 'https://cricket.yahoo.net/sifeeds/cricket/live/json/'
     url = {
-        0: 'https://cricket.yahoo.net/sifeeds/multisport/?methodtype=3&client=24&sport=1&league=0&timezone=0530&language=en&gamestate=4',
-        1: base_url + ids + '.json',
-        2: base_url + ids + '_' + ptype + '_splits_'+str(inning_index)+'.json',
-        3: 'https://cricket.yahoo.net/sifeeds/cricket/static/json/iccranking-' + mformat+'-'+dtype+'.json',
+        0: base_url + ids + '.json',
+        1: base_url + ids + '_' + ptype + '_splits_'+str(inning_index)+'.json',
+        2: 'https://cricket.yahoo.net/sifeeds/cricket/static/json/iccranking-' + mformat+'-'+dtype+'.json',
     }[urlindex]
+    return url
+
+def fetch(url):
     return requests.get(url).json()
 
 
@@ -24,6 +27,8 @@ def schedule(limit: int, raw_data: dict):
         'matches'][match_index]['participants'][inning_id][item_type]
     event_fetch: str = lambda match_index, item_type: raw_data['matches'][match_index][item_type]
     for i in range(limit):
+        try:team_names('name', i, 0)
+        except(IndexError,KeyError):break
         data[i] = (
             team_names('name', i, 0),
             team_names('name', i, 1),
@@ -32,12 +37,11 @@ def schedule(limit: int, raw_data: dict):
             event_fetch(i, 'series_name'),
             event_fetch(i, 'start_date').split('+')[1],
             event_fetch(i, 'event_sub_status'),
-            event_fetch(i, 'series_start_date'),
+            event_fetch(i, 'start_date'),
             event_fetch(i, 'venue_name'),
             event_fetch(i, 'game_id')
         )
     return data
-
 
 def miniscore(inning_id: int, data: dict):
     inning = data['Innings'][inning_id]
@@ -54,7 +58,6 @@ def miniscore(inning_id: int, data: dict):
         teams[inning['Battingteam']]['Name_Short'],
         teams[inning['Bowlingteam']]['Name_Short'],
     )
-
 
 def fetch_team(team_id: str):
     return requests.get('https://cricket.yahoo.net/sifeeds/cricket/static/json/' + str(team_id) + '_team.json').json()
@@ -100,15 +103,15 @@ def team_pl(team_id: str, raw_data: dict):
     pls = []
     for i in players:
         if players[str(i)]['Confirm_XI']:
-            p = ' p'
+            p = ' *(playing)*'
         try:
             players[str(i)]['Iscaptain']
-            c = ' c'
+            c = ' *(captain)*'
         except KeyError:
             c = ''
         try:
             players[str(i)]['Iskeeper']
-            k = ' k'
+            k = ' *(keeper)*'
         except KeyError:
             k = ''
         pls.append((players[str(i)]['Name_Full'], p, c, k))
