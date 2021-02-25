@@ -20,7 +20,6 @@ def urlprov(ids: str, urlindex: int, ptype: str, inning_index: int, mformat: str
 def fetch(url):
     return requests.get(url).json()
 
-
 def schedule(limit: int, raw_data: dict):
     data = {}
     team_names: str = lambda item_type, match_index, inning_id: raw_data[
@@ -261,4 +260,4 @@ def leaderboard(raw_data: dict):
 #f=open('schedule.json', 'r')
 #shotsfig('7861', json.load(f))
 
-#print(leaderboard(fetch('', 3, '', 0, 't20', 'bat')))
+#print(leaderboard(fetch(urlprov('', 2, '', 0, 't20', 'bowl'))))

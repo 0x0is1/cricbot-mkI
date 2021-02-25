@@ -55,9 +55,15 @@ def team_embed(raw_data,team_id):
     for i in team_data:
        embed.add_field(name=i[0], value=i[1]+i[2]+i[3], inline=False)
     return embed
-'''    embed = discord.Embed(title='Teams', color=0x03f8fc)
-    embed.add_field(name=team_name,)
-'''
+
+def leaderboard_embed(mf,dtype):
+    rawlb=cb.leaderboard(cb.fetch(cb.urlprov('', 2, '', 0, mf, dtype)))
+    embed = discord.Embed(title='Leaderboard {0} {1}'.format(mf,dtype), color=0x03f8fc)
+    embed.add_field(name='-',value='(Name) (Team Name) (Points) (Against)',inline=False)
+    for i in rawlb:
+        embed.add_field(name='{0} Team:{1} Point:{2}'.format(i[0],i[1],i[2]), value='+'+i[3], inline=False)
+    return embed
+
 bot=commands.Bot(command_prefix='.')
 
 @bot.event
@@ -67,27 +73,17 @@ async def on_ready():
 @bot.event
 async def on_reaction_add(reaction, user):
     if not user.bot:
-        print(reaction)
+        global ids_con
         message = reaction.message
         channel = message.channel
         msg=await channel.fetch_message(message.id)
         session_id=str(msg.embeds[0].fields[-1].value).split('sessionid:')[1].split('`')[0]
         sess_args=session_id.split('-')
         if 'TEF' in sess_args[0]:
-            global ids_con
             m_id = ids_con[int(sess_args[1])]
             e=team_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')),sess_args[num_emojis.index(str(reaction))+1])
             e.add_field(name='_', value='`sessionid:TEF-{0}-{1}-{2}`'.format(sess_args[1],sess_args[2],sess_args[3]), inline=True)
             await message.edit(embed=e)
-            
-    '''channel_id = channel.id
-        if channel_id in msg_id:
-            message = await channel.fetch_message(msg_id[channel_id])
-            try:
-                await message.remove_reaction('1️⃣', user)
-            except:
-                pass
-            await message.edit(embed=score_embed(k[channel_id]))'''
 
 @bot.command()
 async def schedule(ctx, count=5, shtype='live'):
@@ -109,6 +105,10 @@ async def team(ctx, match_index: int):
     message=await ctx.send(embed=team_embed_f(raw_data,match_index))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
+
+@bot.command(aliases=['lb', 'ldb'])
+async def leaderboard(ctx, match_format='odi', dtype='bat'):
+    await ctx.send(embed=leaderboard_embed(match_format, dtype))
 
 auth_token = os.environ.get('EXPERIMENTAL_BOT_TOKEN')
 bot.run(auth_token)
