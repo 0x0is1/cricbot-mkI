@@ -1,4 +1,3 @@
-from numpy.core.fromnumeric import argsort
 import requests
 import base64
 import io
@@ -172,9 +171,8 @@ def partnership(inning_id: int, raw_data: dict):
     team_name = raw_data['Teams'][team_id]['Name_Full']
     score = str(sc['Total'])+'/'+str(sc['Wickets'])+' '+str(sc['Overs'])
     for i in psp:
-        def b(a): return plr[i['Batsmen']
-                             [a]['Batsman']]['Name_Full'].split(' ')[-1]
-        x.append(b(0)+'-'+b(1))
+        b =lambda a:plr[i['Batsmen'][a]['Batsman']]['Name_Full'].split(' ')[-1]
+        x.append(b(0)+'\n'+b(1))
         runs.append(int(i['Runs']))
         balls.append(int(i['Balls']))
     x_pos = [i for i, _ in enumerate(x)]
@@ -183,16 +181,15 @@ def partnership(inning_id: int, raw_data: dict):
     mp.ylabel("Runs")
     mp.title("Partnerships: "+team_name+' '+str(score))
     mp.xticks(x_pos, x, fontsize=7)
-    mp.yticks(np.arange(0, int(runs[len(runs)-1])+10, step=5))
+    r=sorted(runs)
+    mp.yticks(np.arange(0, int(r[len(runs)-1])+10, step=15))
     for i in range(len(runs)):
-        mp.annotate(str(runs[i])+' in '
-                    + str(balls[i]), (x_pos[i]-0.3, runs[i]+1), fontsize=8)
+        mp.annotate(str(runs[i])+' in '+ str(balls[i]), (x_pos[i]-0.3, runs[i]+1), fontsize=8)
     fig = mp.gcf()
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
-    string = base64.b64encode(buf.read()).decode('utf-8')
-    return string
+    return buf
 
 
 def player_againstcard(player_id: str, raw_data: dict, pltype: int):
@@ -225,7 +222,7 @@ def shotsfig(player_id: str, raw_data: dict):
     shots = raw_data['Batsmen'][player_id]['Shots']
     BATS_POS = (496, 470)
     UNIT_DIS = 110
-    def distance(k): return int(k['Distance'])*UNIT_DIS
+    distance=lambda k: int(k['Distance'])*UNIT_DIS
     im = Image.open("./field.jpg")
     d = ImageDraw.Draw(im)
     for i in shots:
