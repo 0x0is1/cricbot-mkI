@@ -6,7 +6,6 @@ import numpy as np
 from PIL import Image, ImageDraw
 from math import cos, sin, radians
 
-
 def urlprov(ids: str, urlindex: int, ptype: str, inning_index: int, mformat: str, dtype: str):
     base_url = 'https://cricket.yahoo.net/sifeeds/cricket/live/json/'
     url = {
@@ -25,8 +24,10 @@ def schedule(limit: int, raw_data: dict):
         'matches'][match_index]['participants'][inning_id][item_type]
     event_fetch: str = lambda match_index, item_type: raw_data['matches'][match_index][item_type]
     for i in range(limit):
-        try:team_names('name', i, 0)
-        except(IndexError,KeyError):break
+        try:
+            team_names('name', i, 0)
+        except(IndexError, KeyError):
+            break
         data[i] = (
             team_names('name', i, 0),
             team_names('name', i, 1),
@@ -63,15 +64,14 @@ def fetch_team(team_id: str):
 
 def playercard(team_id: str, player_id: str, raw_data: dict):
     player = raw_data['Teams'][team_id]['Players'][player_id]
-    bt = player['Batting']
-    bl = player['Bowling']
+    bt, bl = player['Batting'], player['Bowling']
     return player['Name_Full'], player['Matches'],\
         (bt['Style'], bt['Average'], bt['Strikerate'], bt['Runs']),\
         (bl['Style'], bl['Average'], bl['Economyrate'], bl['Wickets'])
 
 
 def scorecard(inning_id: int, data: dict):
-    btsb,blsb = [],[]
+    btsb, blsb = [], []
     inning = data['Innings'][inning_id]
     batsmen = inning['Batsmen']
     bowler = inning['Bowlers']
@@ -80,25 +80,17 @@ def scorecard(inning_id: int, data: dict):
     btplayer = data['Teams'][btteam_id]['Players']
     blplayer = data['Teams'][blteam_id]['Players']
     for i in batsmen:
-        btsb.append(
-            (
-                btplayer[i['Batsman']]['Name_Full'],
+        btsb.append((btplayer[i['Batsman']]['Name_Full'],
                      i['Runs'], i['Balls'], i['Fours'],
-                     i['Sixes'], i['Dots'], i['Strikerate'], i['Howout']
-            )
-        )
+                     i['Sixes'], i['Dots'], i['Strikerate'], i['Howout']))
     for i in bowler:
-        blsb.append(
-            (
-                blplayer[i['Bowler']]['Name_Full'],
-                     i['Overs'], i['Maidens'], i['Wickets'],
-                     i['Economyrate'], i['Noballs'], i['Wides'], i['Dots']))
+        blsb.append((blplayer[i['Bowler']]['Name_Full'], i['Overs'],
+                     i['Maidens'], i['Wickets'], i['Economyrate'], i['Noballs'], i['Wides'], i['Dots']))
     return btsb, blsb
 
 
 def team_pl(team_id: str, raw_data: dict):
-    players = raw_data['Teams'][team_id]['Players']
-    pls = []
+    players, pls = raw_data['Teams'][team_id]['Players'], []
     for i in players:
         if players[str(i)]['Confirm_XI']:
             p = ' *(playing)*'
@@ -134,7 +126,8 @@ def fow(inning_id: int, raw_data: dict):
     mp.plot(o, s, color='red', marker='o', linewidth=3,
             markerfacecolor='red', markersize=8)
     for i in range(len(o)):
-        mp.annotate('('+str(s[i])+'-'+str(o[i])+')', (o[i]+0.1, s[i]-2))
+        mp.annotate('('+str(s[i])+'-'+str(o[i])+')',
+                    (o[i]+0.1, s[i]-2))
     s.append(int(sc['Total']))
     o.append(float(sc['Overs']))
     mp.plot(o, s, color='blue')
@@ -147,18 +140,17 @@ def fow(inning_id: int, raw_data: dict):
 
 
 def powerplay(inning_id: int, raw_data: dict):
-    pp = raw_data['Innings'][inning_id]['PowerPlayDetails']
-    a = []
+    a, pp = [], raw_data['Innings'][inning_id]['PowerPlayDetails']
     for i in pp:
         a.append((i['Name'], i['Overs'], i['Runs'], i['Wickets']))
     return a
 
 
 def lastovers(inning_id: int, raw_data: dict):
-    lsov = raw_data['Innings'][inning_id]['LastOvers']
-    a = []
+    lsov, a = raw_data['Innings'][inning_id]['LastOvers'], []
     for i in lsov:
-        a.append((i, lsov[i]['Score'], lsov[i]['Wicket'], lsov[i]['Runrate']))
+        a.append((i, lsov[i]['Score'],
+                  lsov[i]['Wicket'], lsov[i]['Runrate']))
     return a
 
 
@@ -171,7 +163,8 @@ def partnership(inning_id: int, raw_data: dict):
     team_name = raw_data['Teams'][team_id]['Name_Full']
     score = str(sc['Total'])+'/'+str(sc['Wickets'])+' '+str(sc['Overs'])
     for i in psp:
-        b =lambda a:plr[i['Batsmen'][a]['Batsman']]['Name_Full'].split(' ')[-1]
+        def b(a): return plr[i['Batsmen'][a]
+                             ['Batsman']]['Name_Full'].split(' ')[-1]
         x.append(b(0)+'\n'+b(1))
         runs.append(int(i['Runs']))
         balls.append(int(i['Balls']))
@@ -181,36 +174,32 @@ def partnership(inning_id: int, raw_data: dict):
     mp.ylabel("Runs")
     mp.title("Partnerships: "+team_name+' '+str(score))
     mp.xticks(x_pos, x, fontsize=7)
-    r=sorted(runs)
-    mp.yticks(np.arange(0, int(r[len(runs)-1])+10, step=15))
+    r = sorted(runs)
+    highest_score = int(r[len(runs)-1])
+    mp.yticks(np.arange(0, highest_score+10, step=15))
     for i in range(len(runs)):
-        mp.annotate(str(runs[i])+' in '+ str(balls[i]), (x_pos[i]-0.3, runs[i]+1), fontsize=8)
+        mp.annotate(str(runs[i])+' in ' +
+                    str(balls[i]), (x_pos[i]-0.3, runs[i]+1), fontsize=8)
     fig = mp.gcf()
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
+    mp.cla()
     return buf
 
 
-def player_againstcard(player_id: str, raw_data: dict, pltype: int):
-    if pltype == 1:
-        c = 'Strikerate'
-        d = 'Batsmen'
-        e = 'Bowler'
-        f = 'Batsman'
+def player_againstcard(player_id: str, raw_data: dict, is_batsman: bool):
+    if is_batsman:
+        c, d, e, f = 'Strikerate', 'Batsmen', 'Bowler', 'Batsman'
     else:
-        c = 'Economyrate'
-        d = 'Bowlers'
-        e = 'Batsman'
-        f = 'Bowler'
+        c, d, e, f = 'Economyrate', 'Bowlers', 'Batsman', 'Bowler'
     pl = raw_data[d][player_id]
-    ag = pl['Against']
-    a = []
+    ag, a = pl['Against'], []
     for i in ag:
         k = ag[i]
-        a.append((k[e], k['Runs'], k['Balls'],
-                  k['Fours'], k['Sixes'], k['Dots'], k[c]))
-        return pl[f], a
+        a.append((k[e], k['Runs'],
+                  k['Balls'], k['Fours'], k['Sixes'], k['Dots'], k[c]))
+    return pl[f], a
 
 
 def get_color(index: str):
@@ -218,31 +207,38 @@ def get_color(index: str):
             '4': 'green', '6': 'blue'}[index]
 
 
-def shotsfig(player_id: str, raw_data: dict):
-    shots = raw_data['Batsmen'][player_id]['Shots']
-    BATS_POS = (496, 470)
-    UNIT_DIS = 110
-    distance=lambda k: int(k['Distance'])*UNIT_DIS
-    im = Image.open("./field.jpg")
-    d = ImageDraw.Draw(im)
-    for i in shots:
-        X = (distance(i)*cos(radians(int(i['Angle'])+90)))+BATS_POS[0]
-        Y = (distance(i)*sin(radians(int(i['Angle'])+90)))+BATS_POS[1]
-        d.line([(X, Y), BATS_POS], fill=get_color(i['Runs']), width=4)
-        d.text((X, Y), i['Runs'], fill='black')
-    buf = io.BytesIO()
-    im.save(buf, format='jpeg')
-    buf.seek(0)
-    string = base64.b64encode(buf.read()).decode('utf-8')
-    return string
+def shotsfig(player_index: int, raw_data: dict, want_fig: bool, psid: list):
+    if want_fig:
+        shots = raw_data['Batsmen'][psid[player_index-1]]['Shots']
+        BATS_POS = (496, 470)
+        UNIT_DIS = 110
+        def distance(k): return int(k['Distance'])*UNIT_DIS
+        im = Image.open("./field.jpg")
+        d = ImageDraw.Draw(im)
+        for i in shots:
+            X = (distance(i)*cos(radians(int(i['Angle'])+90)))+BATS_POS[0]
+            Y = (distance(i)*sin(radians(int(i['Angle'])+90)))+BATS_POS[1]
+            d.line([(X, Y), BATS_POS], fill=get_color(i['Runs']), width=4)
+            d.text((X, Y), i['Runs'], fill='black')
+        buf = io.BytesIO()
+        im.save(buf, format='jpeg')
+        buf.seek(0)
+        return buf
+    else:
+        players = raw_data['Batsmen']
+        has_shots = []
+        for i in players:
+            shot = players[i]['Shots']
+            if shot != []:
+                has_shots.append((i,players[i]['Batsman']))
+        return has_shots
 
 
 def leaderboard(raw_data: dict):
-    a = []
-    r = raw_data['bat-rank']['rank']
+    r, a = raw_data['bat-rank']['rank'], []
     for i in r:
-        a.append((i['Player-name'], i['Country'],
-                  i['Points'], i['careerbest']))
+        a.append((i['Player-name'],
+                  i['Country'], i['Points'], i['careerbest']))
     return a
 
 #print(shotsfig('3852', fetch('inen02132021199340', 2)))
@@ -254,7 +250,14 @@ def leaderboard(raw_data: dict):
 #print(scorecard(1, fetch('pedbet02012021199824', 1))[0])
 
 #print(urlprov('tadped01312021199821', 2))
-#f=open('schedule.json', 'r')
-#shotsfig('7861', json.load(f))
+#f=open('schedule.json', 'a')
+#f.write(str(fetch(urlprov('tadped01312021199821', 0, '', 0, '', ''))))
+'''a=shotsfig(0, fetch(
+    urlprov('tadped01312021199821', 1, 'batsman', 1, '', '')), False, [])
 
+a = shotsfig(int(input()), fetch(
+    urlprov('tadped01312021199821', 1, 'batsman', 1, '', '')), True, [])
+'''
 #print(leaderboard(fetch(urlprov('', 2, '', 0, 't20', 'bowl'))))
+#partnership(0, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
+#partnership(1, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
