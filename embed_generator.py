@@ -2,9 +2,9 @@ import discord,os
 import cricbotlib as cb
 from discord.ext import commands
 
-num_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
-
-ids_con=[]
+num_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '➡️']
+botid = 798505180076965891
+ids_con,psid=[],[]
 curr_teams=[]
 
 #embedders
@@ -83,6 +83,28 @@ def leaderboard_embed(mf,dtype):
         embed.add_field(name='{0} Team:{1} Point:{2}'.format(i[0],i[1],i[2]), value='+'+i[3], inline=False)
     return embed
 
+def shotsfig_embed_f(raw_data: dict, match_index):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
+    embed.add_field(name='React the team no. to get shots details', value='1. {0}\n2. {1}'.format(
+        teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+    embed.add_field(name='_', value='`sessionid:SFG-{0}-{1}-{2}`'.format(match_index,team_ids[0],team_ids[1]), inline=True)
+    return embed
+
+def shotsfig_embed_f0(raw_data: dict, match_index):
+    embed = discord.Embed(title='Shots list', color=0x03f8fc)
+    global psid
+    l=cb.shotsfig(0, raw_data, False, [])
+    psid.clear()
+    for i in l:
+        embed.add_field(name=i.index, value=i[1], inline=False)
+        psid.append(i[0])
+    embed.add_field(name='_', value='`sessionid:SFGL-{0}`'.format(match_index), inline=True)
+    return embed
+
 bot=commands.Bot(command_prefix='.')
 
 #events
@@ -93,7 +115,7 @@ async def on_ready():
 @bot.event
 async def on_reaction_add(reaction, user):
     if not user.bot:
-        global ids_con
+        global ids_con, psid
         message = reaction.message
         channel = message.channel
         msg=await channel.fetch_message(message.id)
@@ -106,12 +128,29 @@ async def on_reaction_add(reaction, user):
             e.add_field(name='_', value='`sessionid:TEF-{0}-{1}-{2}`'.format(sess_args[1],sess_args[2],sess_args[3]), inline=True)
             await message.edit(embed=e)
         if 'PEF' in sess_args[0]:
+            global botid
             m_id = ids_con[int(sess_args[1])]
             await channel.send(file=partnership_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction))))
         if 'MSC' in sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
             await message.edit(embed=score_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), sess_args[1]))
-
+        if 'SFG' == sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            data=cb.fetch(cb.urlprov(m_id, 1, 'batsman', num_emojis.index(str(reaction)), '', ''))
+            em=shotsfig_embed_f0(data,sess_args[1])
+            await message.edit(embed=em)
+            await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
+            print(len(psid))
+            print(psid)
+            for i in range(1, len(psid)+1):
+                await message.add_reaction(num_emojis[i])
+        if 'SFGL' == sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            data = cb.fetch(cb.urlprov(m_id, 1, 'batsman', 1, '', ''))
+            f=cb.shotsfig(num_emojis.index(str(reaction)), data, True, psid)
+            file = discord.File(fp=f, filename='img{}.png'.format(m_id))
+            await channel.send(file=file)
 
 #commands
 @bot.command(aliases=['sh', 'sd'])
@@ -149,6 +188,15 @@ async def partnership(ctx, match_index: int):
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
+
+@bot.command(aliases=['shot', 'st', 'sts'])
+async def shots(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
+    message = await ctx.send(embed=shotsfig_embed_f(raw_data, match_index))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
 
 auth_token = os.environ.get('EXPERIMENTAL_BOT_TOKEN')
 bot.run(auth_token)
