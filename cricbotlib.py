@@ -1,5 +1,4 @@
 import requests
-import base64
 import io
 import matplotlib.pyplot as mp
 import numpy as np
@@ -118,8 +117,8 @@ def fow(inning_id: int, raw_data: dict):
     for i in fw:
         o.append(float(i['Overs']))
         s.append(int(i['Score']))
-    mp.xticks(np.arange(0, int(o[len(o)-1]+100), step=1))
-    mp.yticks(np.arange(0, int(s[len(s)-1]+100), step=10))
+    mp.xticks(np.arange(0, int(o[len(o)-1]+100), step=5))
+    mp.yticks(np.arange(0, int(s[len(s)-1]+100), step=15))
     mp.title('Fall of wicket: '+team_name+' ('+score+')', fontsize=14)
     mp.xlabel('Overs', fontsize=14)
     mp.ylabel('Runs', fontsize=14)
@@ -127,7 +126,7 @@ def fow(inning_id: int, raw_data: dict):
             markerfacecolor='red', markersize=8)
     for i in range(len(o)):
         mp.annotate('('+str(s[i])+'-'+str(o[i])+')',
-                    (o[i]+0.1, s[i]-2))
+                    (o[i]+0.1, s[i]-2), fontsize=7)
     s.append(int(sc['Total']))
     o.append(float(sc['Overs']))
     mp.plot(o, s, color='blue')
@@ -135,8 +134,8 @@ def fow(inning_id: int, raw_data: dict):
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
     buf.seek(0)
-    string = base64.b64encode(buf.read()).decode('utf-8')
-    return string
+    mp.cla()
+    return buf
 
 
 def powerplay(inning_id: int, raw_data: dict):
