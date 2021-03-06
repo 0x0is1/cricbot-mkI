@@ -122,6 +122,24 @@ def fow_embed(raw_data, inning_id):
     f.close()
     return file
 
+def powerplay_embed_f(raw_data, match_index):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
+    embed.add_field(name='React the team no. to get Partnership details', value='1. {0}\n2. {1}'.format(
+        teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+    embed.add_field(name='_', value='`sessionid:PSP-{0}-{1}-{2}`'.format(match_index,team_ids[0],team_ids[1]), inline=True)
+    return embed
+
+def powerplay_embed(raw_data, inning_id):
+    data= cb.powerplay(inning_id, raw_data)
+    embed = discord.Embed(title='Powerplays')
+    for i in data:
+        embed.add_field(name='{0}\nOvers   Run   Wicket'.format(i[0]), value="{:02n}-{:02n}   {:03n}   {:02n}".format(
+            int(i[1].split('-')[0]), int(i[1].split('-')[1]), int(i[2]), int(i[3])))
+    return embed
 bot=commands.Bot(command_prefix='.')
 
 #events
@@ -168,6 +186,11 @@ async def on_reaction_add(reaction, user):
         if 'FOW' in sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
             await channel.send(file=fow_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction))))
+        if 'PSP' in sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            e=powerplay_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction)))
+            e.add_field(name='_', value='`sessionid:PSP-{0}-{1}-{2}`'.format(sess_args[1],sess_args[2],sess_args[3]), inline=True)
+            await message.edit(embed=e)
 
 #commands
 @bot.command(aliases=['sh', 'sd'])
@@ -221,11 +244,19 @@ async def fow(ctx, match_index: int):
     global ids_con, curr_teams
     m_id = ids_con[match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
-    print(cb.urlprov(m_id, 0, '', 0, '', ''))
+    #print(cb.urlprov(m_id, 0, '', 0, '', ''))
     message = await ctx.send(embed=fow_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
+@bot.command(aliases=['pow', 'pp', 'powerp', 'power'])
+async def powerplay(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
+    message = await ctx.send(embed=powerplay_embed_f(raw_data, match_index))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
 
 auth_token = os.environ.get('EXPERIMENTAL_BOT_TOKEN')
 bot.run(auth_token)
