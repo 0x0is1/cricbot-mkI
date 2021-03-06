@@ -139,17 +139,16 @@ def fow(inning_id: int, raw_data: dict):
 
 
 def powerplay(inning_id: int, raw_data: dict):
-    a, pp = [], raw_data['Innings'][inning_id]['PowerPlayDetails']
-    for i in pp:
+    a, pwp = [], raw_data['Innings'][inning_id]['PowerPlayDetails']
+    for i in pwp:
         a.append((i['Name'], i['Overs'], i['Runs'], i['Wickets']))
     return a
 
 
 def lastovers(inning_id: int, raw_data: dict):
     lsov, a = raw_data['Innings'][inning_id]['LastOvers'], []
-    for i in lsov:
-        a.append((i, lsov[i]['Score'],
-                  lsov[i]['Wicket'], lsov[i]['Runrate']))
+    for i in lsov:a.append((i, lsov[i]['Score'],
+    lsov[i]['Wicket'], lsov[i]['Runrate']))
     return a
 
 
