@@ -1,12 +1,15 @@
 import discord,os
+
+from discord import player
 import cricbotlib as cb
 from discord.ext import commands
 
 num_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '➡️']
 botid = 798505180076965891
+arrows_emojis=['⬆️', '⬇️', '➡️', '⬅️']
 ids_con,psid=[],[]
 curr_teams=[]
-
+prctid=0
 #embedders
 def schedule_embed(limit, raw_data):
     schedule = cb.schedule(limit,raw_data)
@@ -140,6 +143,44 @@ def powerplay_embed(raw_data, inning_id):
         embed.add_field(name='{0}\nOvers   Run   Wicket'.format(i[0]), value="{:02n}-{:02n}   {:03n}   {:02n}".format(
             int(i[1].split('-')[0]), int(i[1].split('-')[1]), int(i[2]), int(i[3])))
     return embed
+
+
+def playercard_embed_f(raw_data, match_index):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(
+        s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0], s[1], s[3]), inline=False)
+    embed.add_field(name='React the team ID to get Players details', value='1. {0}\n2. {1}'.format(
+        teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+    embed.add_field(name='_', value='`sessionid:PRC-{0}-{1}-{2}-{3}`'.format(
+        match_index, team_ids[0], team_ids[1], str(0)), inline=True)
+    return embed
+
+plids=[]
+def playercard_embed(raw_data, player_id, team_id):
+    data_bt = cb.playercard(team_id, player_id, raw_data, 0)
+    data_bl = cb.playercard(team_id, player_id, raw_data, 1)    
+    embed = discord.Embed(title='Player Info')
+    embed.add_field(name='Name:', value=data_bt[0], inline=True)
+    embed.add_field(name='Total Matches:', value=data_bt[1], inline=True)
+    embed.add_field(
+        name='BATTING', value='+=============++=============+', inline=False)
+    for i in range(0, len(data_bt[2])):
+        val = data_bt[3][i]
+        if val == '':
+            val='NaN'
+        embed.add_field(name=data_bt[2][i], value=val, inline=True)
+    embed.add_field(
+        name='BOWLING', value='+=============++=============+', inline=False)
+    for i in range(0, len(data_bl[2])):
+        val = data_bl[3][i]
+        if val == '':
+            val = 'NaN'
+        embed.add_field(name=data_bl[2][i], value=val, inline=True)
+    return embed
+
 bot=commands.Bot(command_prefix='.')
 
 #events
@@ -191,6 +232,49 @@ async def on_reaction_add(reaction, user):
             e=powerplay_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction)))
             e.add_field(name='_', value='`sessionid:PSP-{0}-{1}-{2}`'.format(sess_args[1],sess_args[2],sess_args[3]), inline=True)
             await message.edit(embed=e)
+        if 'PRC' == sess_args[0]:
+            await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
+            global plids, prctid
+            plids.clear()
+            m_id = ids_con[int(sess_args[1])]
+            data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
+            teams = list(data['Teams'])
+            team_id = num_emojis.index(str(reaction))
+            prctid = team_id
+            #print(data)
+            plids = list(data['Teams'][teams[team_id-1]]['Players'])
+            player_id = plids[int(sess_args[4])]
+            e = playercard_embed(data, player_id, teams[team_id-1])
+            e.add_field(name='_', value='`sessionid:PRCI={0}={1}={2}={3}`'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4]), inline=True)
+            await message.edit(embed=e)
+            await message.add_reaction(arrows_emojis[3])
+            await message.add_reaction(arrows_emojis[2])
+        
+        #split pattern changed as spliting and parsing '-' to string to int 
+        #results into considering the minus as hyphen;
+        # '=' replace here '-' to avoid this bug.
+        sess_args=session_id.split('=')
+        if 'PRCI' in sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
+            teams = list(data['Teams'])
+            team_id = prctid
+            if str(reaction) == arrows_emojis[2]:
+                curr_plindex = int(sess_args[4])+1
+            if str(reaction) == arrows_emojis[3]:
+                curr_plindex = int(sess_args[4])-1
+            if curr_plindex <0:
+                curr_plindex=0
+            try:
+                player_id = plids[curr_plindex]
+                e = playercard_embed(data, player_id, teams[team_id-1])
+                e.add_field(name='_', value='`sessionid:PRCI={0}={1}={2}={3}`'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex)), inline=True)
+            except IndexError: pass
+            await message.edit(embed=e)
+        
+        #resetting splition back to normal '-'
+        sess_args = session_id.split('-')
 
 #commands
 @bot.command(aliases=['sh', 'sd'])
@@ -255,6 +339,17 @@ async def powerplay(ctx, match_index: int):
     m_id = ids_con[match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
     message = await ctx.send(embed=powerplay_embed_f(raw_data, match_index))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
+
+@bot.command(aliases=['trumpcard', 'prc', 'player-info'])
+async def playercard(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    url = cb.urlprov(m_id, 0, '', 0, '', '')
+    raw_data = cb.fetch(url)
+    print(url)
+    message = await ctx.send(embed=playercard_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
