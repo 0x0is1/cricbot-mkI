@@ -1,5 +1,5 @@
 import requests
-import io
+import io,json
 import matplotlib.pyplot as mp
 import numpy as np
 from PIL import Image, ImageDraw
@@ -61,12 +61,14 @@ def fetch_team(team_id: str):
     return requests.get('https://cricket.yahoo.net/sifeeds/cricket/static/json/' + str(team_id) + '_team.json').json()
 
 
-def playercard(team_id: str, player_id: str, raw_data: dict):
+def playercard(team_id: str, player_id: str, raw_data: dict, data_id: int):
     player = raw_data['Teams'][team_id]['Players'][player_id]
     bt, bl = player['Batting'], player['Bowling']
-    return player['Name_Full'], player['Matches'],\
-        (bt['Style'], bt['Average'], bt['Strikerate'], bt['Runs']),\
-        (bl['Style'], bl['Average'], bl['Economyrate'], bl['Wickets'])
+    en = [('Style', 'Average', 'Strikerate', 'Runs'),('Style', 'Average', 'Economyrate', 'Wickets')][data_id]
+    dta = [(bt['Style'], bt['Average'], bt['Strikerate'], bt['Runs']),
+           (bl['Style'], bl['Average'], bl['Economyrate'], bl['Wickets'])][data_id]
+
+    return player['Name_Full'], player['Matches'], en, dta
 
 
 def scorecard(inning_id: int, data: dict):
@@ -211,7 +213,7 @@ def shotsfig(player_index: int, raw_data: dict, want_fig: bool, psid: list):
         BATS_POS = (496, 470)
         UNIT_DIS = 110
         def distance(k): return int(k['Distance'])*UNIT_DIS
-        im = Image.open("./field.jpg")
+        im = Image.open("./res/field.jpg")
         d = ImageDraw.Draw(im)
         for i in shots:
             X = (distance(i)*cos(radians(int(i['Angle'])+90)))+BATS_POS[0]
@@ -234,17 +236,16 @@ def shotsfig(player_index: int, raw_data: dict, want_fig: bool, psid: list):
 
 def leaderboard(raw_data: dict):
     r, a = raw_data['bat-rank']['rank'], []
-    for i in r:
-        a.append((i['Player-name'],
-                  i['Country'], i['Points'], i['careerbest']))
+    for i in r:a.append((i['Player-name'],
+    i['Country'], i['Points'], i['careerbest']))
     return a
 
 #print(shotsfig('3852', fetch('inen02132021199340', 2)))
 
 #print(fow(0, fetch('tadped01312021199821', 1)))
-
-#print(playercard('1989', '4476', fetch('tadped01312021199821', 1)))
-
+#data=playercard('1989', '4476', fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')),1)
+'''for i in range(0, len(data[2])):
+    print(data[2][i], data[3][i])'''
 #print(scorecard(1, fetch('pedbet02012021199824', 1))[0])
 
 #print(urlprov('tadped01312021199821', 2))
