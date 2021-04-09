@@ -6,10 +6,20 @@ from discord.ext import commands
 
 num_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '➡️']
 botid = 798505180076965891
-arrows_emojis=['⬆️', '⬇️', '➡️', '⬅️']
+arrows_emojis=['⬆️', '⬇️', '➡️', '⬅️', '🔄']
 ids_con,psid=[],[]
 curr_teams=[]
+plids=[]
 prctid=0
+
+def string_padder(string):
+    return string+('.'*(18-len(string)))
+
+def null_normalizer(arg):
+    if arg=='': return '0'
+    else: return arg
+
+
 #embedders
 def schedule_embed(limit, raw_data):
     schedule = cb.schedule(limit,raw_data)
@@ -144,7 +154,6 @@ def powerplay_embed(raw_data, inning_id):
             int(i[1].split('-')[0]), int(i[1].split('-')[1]), int(i[2]), int(i[3])))
     return embed
 
-
 def playercard_embed_f(raw_data, match_index):
     s = cb.miniscore(0, raw_data)
     teams = raw_data['Teams']
@@ -158,7 +167,6 @@ def playercard_embed_f(raw_data, match_index):
         match_index, team_ids[0], team_ids[1], str(0)), inline=True)
     return embed
 
-plids=[]
 def playercard_embed(raw_data, player_id, team_id):
     data_bt = cb.playercard(team_id, player_id, raw_data, 0)
     data_bl = cb.playercard(team_id, player_id, raw_data, 1)    
@@ -181,6 +189,39 @@ def playercard_embed(raw_data, player_id, team_id):
         embed.add_field(name=data_bl[2][i], value=val, inline=True)
     return embed
 
+def scorecard_embed_f(raw_data, match_index):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(
+        s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0], s[1], s[3]), inline=False)
+    embed.add_field(name='Select the inning', value='1. {0}\n2. {1}'.format(
+        teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+    embed.add_field(name='_', value='`sessionid:SCR-{0}-{1}-{2}`'.format(
+        match_index, team_ids[0], team_ids[1]), inline=True)
+    return embed
+
+def scorecard_embed(raw_data, inning_id):
+    data_bt = cb.scorecard(inning_id, raw_data)[0]
+    data_bl = cb.scorecard(inning_id, raw_data)[1]
+    embed = discord.Embed(title='Scorecard')
+    embed.add_field(
+        name='BATTING', value='', inline=False)
+    vt = "```css\n.BATTING\n+=============++=============+\n[Name]           [Runs] [Balls] [4s]  [6s]  [D]    [S.R]\n"
+    for i in range(0, len(data_bt)):
+        k = data_bt[i]
+        vt = vt+'{}{:03n}    {:03n}     {:02n}    {:02n}    {:02n}    {}\n'.format(string_padder(k[0]), int(null_normalizer(k[1])), int(null_normalizer(k[2])), int(null_normalizer(k[3])), int(null_normalizer(k[4])), int(null_normalizer(k[5])), float(null_normalizer(k[6])))
+    
+    vb = "\n.BOWLING\n+=============++=============+\n[Name]           [Runs] [Overs] [M] [W]  [NB] [WD] [D] [E.R]\n"
+    for i in range(0, len(data_bl)):
+        k = data_bl[i]
+        vb += '{}{:03n}   {:4.1f}    {:02n}   {:02n}   {:02n}   {:02n}   {:02n}  {}\n'.format(
+            string_padder(k[0]), int(null_normalizer(k[1])), float(null_normalizer(k[2])), int(null_normalizer(k[3])), int(null_normalizer(k[4])), int(null_normalizer(k[5])), int(null_normalizer(k[6])), int(null_normalizer(k[7])), float(null_normalizer(k[8])))
+    
+    n = vt + vb
+    return n
+
 bot=commands.Bot(command_prefix='.')
 
 #events
@@ -195,7 +236,10 @@ async def on_reaction_add(reaction, user):
         message = reaction.message
         channel = message.channel
         msg=await channel.fetch_message(message.id)
-        session_id=str(msg.embeds[0].fields[-1].value).split('sessionid:')[1].split('`')[0]
+        try:
+            session_id=str(msg.embeds[0].fields[-1].value).split('sessionid:')[1].split('`')[0]
+        except Exception:
+            session_id = str(msg.content).split('sessionid:')[1].split('\n')[0]
         await message.remove_reaction(reaction, user)
         sess_args=session_id.split('-')
         if 'TEF' in sess_args[0]:
@@ -275,6 +319,24 @@ async def on_reaction_add(reaction, user):
         
         #resetting splition back to normal '-'
         sess_args = session_id.split('-')
+        print(session_id)
+        if 'SCR' == sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            url = cb.urlprov(m_id, 0, '', 0, '', '')
+            raw_data = cb.fetch(url)
+            in_id = num_emojis.index(str(reaction))
+            string=scorecard_embed(raw_data, int(in_id)-1)
+            string = string + 'sessionid:SCRR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1],sess_args[2],sess_args[3], in_id)
+            sent_message=await channel.send(string)
+            await sent_message.add_reaction(arrows_emojis[4])
+
+        if 'SCRR' in sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            url = cb.urlprov(m_id, 0, '', 0, '', '')
+            raw_data = cb.fetch(url)
+            string=scorecard_embed(raw_data, int(sess_args[4])-1)
+            string = string + 'sessionid:SCRR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4])
+            await message.edit(content=string)
 
 #commands
 @bot.command(aliases=['sh', 'sd'])
@@ -348,8 +410,17 @@ async def playercard(ctx, match_index: int):
     m_id = ids_con[match_index]
     url = cb.urlprov(m_id, 0, '', 0, '', '')
     raw_data = cb.fetch(url)
-    print(url)
     message = await ctx.send(embed=playercard_embed_f(raw_data, match_index))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
+
+@bot.command(aliases=['scr', 'scoreboard', 'sbd'])
+async def scorecard(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    url = cb.urlprov(m_id, 0, '', 0, '', '')
+    raw_data = cb.fetch(url)
+    message=await ctx.send(embed=scorecard_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
