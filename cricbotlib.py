@@ -80,13 +80,14 @@ def scorecard(inning_id: int, data: dict):
     blteam_id = inning['Bowlingteam']
     btplayer = data['Teams'][btteam_id]['Players']
     blplayer = data['Teams'][blteam_id]['Players']
+    cc = [('Name', 'R', 'B', '4s', '6s', 'Dts', 'SR'), ('Name', 'R', 'O', 'M', 'W', 'ER', 'NB', 'WD', 'Dts')]
     for i in batsmen:
-        btsb.append((btplayer[i['Batsman']]['Name_Full'],
+        btsb.append(((btplayer[i['Batsman']]['Name_Full']).split(' ')[-1],
                      i['Runs'], i['Balls'], i['Fours'],
-                     i['Sixes'], i['Dots'], i['Strikerate'], i['Howout']))
+                     i['Sixes'], i['Dots'], i['Strikerate']))
     for i in bowler:
-        blsb.append((blplayer[i['Bowler']]['Name_Full'], i['Overs'],
-                     i['Maidens'], i['Wickets'], i['Economyrate'], i['Noballs'], i['Wides'], i['Dots']))
+        blsb.append(((blplayer[i['Bowler']]['Name_Full']).split(' ')[-1], i['Runs'],i['Overs'],
+                     i['Maidens'], i['Wickets'], i['Noballs'], i['Wides'], i['Dots'], i['Economyrate']))
     return btsb, blsb
 
 
@@ -246,7 +247,10 @@ def leaderboard(raw_data: dict):
 #data=playercard('1989', '4476', fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')),1)
 '''for i in range(0, len(data[2])):
     print(data[2][i], data[3][i])'''
-#print(scorecard(1, fetch('pedbet02012021199824', 1))[0])
+    
+'''d=scorecard(1, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
+for i in d[1]:
+    print(i)'''
 
 #print(urlprov('tadped01312021199821', 2))
 #f=open('schedule.json', 'a')
