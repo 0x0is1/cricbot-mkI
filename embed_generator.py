@@ -1,6 +1,5 @@
 import discord,os
 from simplejson import JSONDecodeError
-from numpy import str_
 import cricbotlib as cb
 from discord.ext import commands
 
@@ -238,7 +237,23 @@ def player_againstcard_embed(player_index, raw_data, is_batsman):
         string += '{}{:03n}    {:03n}     {:02n}    {:02n}    {:02n}    {}\n'.format(string_padder(k[0]), int(null_normalizer(k[1])), int(null_normalizer(k[2])), int(null_normalizer(k[3])), int(null_normalizer(k[4])), int(null_normalizer(k[5])), float(null_normalizer(k[6])))
     return heading + nm + table_indices + string
 
+def lastover_embed_f(raw_data, match_index):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
+    embed.add_field(name='Select the inning:', value='1. {0}\n2. {1}'.format(
+        teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+    embed.add_field(name='_', value='`sessionid:LO-{0}`'.format(match_index), inline=True)
+    return embed
 
+def lastover_embed(raw_data, inning_id):
+    data = cb.lastovers(inning_id, raw_data)
+    embed = discord.Embed(title='Lastovers', color=0x03f8fc)
+    for i in data:
+        embed.add_field(name='{0}:'.format(i[0]), value='**Score**: {:02n}\n**Wicket**: {:02n}\n**Run Rate**: {}'.format(int(null_normalizer(i[1])), int(null_normalizer(i[2])), float(null_normalizer(i[3]))), inline=True)
+    return embed
 
 bot=commands.Bot(command_prefix='.')
 
@@ -386,7 +401,7 @@ async def on_reaction_add(reaction, user):
             except JSONDecodeError: string='N/A'
             try:
                 string = player_againstcard_embed(curr_plindex, data, b[player_type])
-                string += '\nsessionid:PACR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1], sess_args[2], str(curr_plindex), str_(player_type))
+                string += '\nsessionid:PACR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1], sess_args[2], str(curr_plindex), str(player_type))
             except IndexError: pass
             nm=await channel.send(content=string)
             await nm.add_reaction(arrows_emojis[3])
@@ -415,6 +430,13 @@ async def on_reaction_add(reaction, user):
             except IndexError: pass
             await message.edit(content=string)
 
+        if 'LO' in sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            inning_index = num_emojis.index(str(reaction))
+            url = cb.urlprov(m_id, 0, '', inning_index, '', '')
+            raw_data = cb.fetch(url)
+            e=lastover_embed(raw_data, inning_index-1)
+            await message.edit(embed=e)
 #commands
 @bot.command(aliases=['sh', 'sd'])
 async def schedule(ctx, count=5, shtype='live'):
@@ -507,6 +529,16 @@ async def againstcard(ctx, match_index: int):
     message=await ctx.send(embed=player_againstcard_embed_f(raw_data, match_index, 0))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
-    
+
+@bot.command(aliases=['lsover', 'lo'])
+async def lastovers(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    url = cb.urlprov(m_id, 0, '', 0, '', '')
+    raw_data = cb.fetch(url)
+    message=await ctx.send(embed=lastover_embed_f(raw_data, match_index))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
+   
 auth_token = os.environ.get('EXPERIMENTAL_BOT_TOKEN')
 bot.run(auth_token)
