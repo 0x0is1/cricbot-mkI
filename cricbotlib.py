@@ -1,5 +1,5 @@
 import requests
-import io,json
+import io
 import matplotlib.pyplot as mp
 import numpy as np
 from PIL import Image, ImageDraw
@@ -80,7 +80,6 @@ def scorecard(inning_id: int, data: dict):
     blteam_id = inning['Bowlingteam']
     btplayer = data['Teams'][btteam_id]['Players']
     blplayer = data['Teams'][blteam_id]['Players']
-    cc = [('Name', 'R', 'B', '4s', '6s', 'Dts', 'SR'), ('Name', 'R', 'O', 'M', 'W', 'ER', 'NB', 'WD', 'Dts')]
     for i in batsmen:
         btsb.append(((btplayer[i['Batsman']]['Name_Full']).split(' ')[-1],
                      i['Runs'], i['Balls'], i['Fours'],
@@ -189,16 +188,17 @@ def partnership(inning_id: int, raw_data: dict):
     return buf
 
 
-def player_againstcard(player_id: str, raw_data: dict, is_batsman: bool):
+def player_againstcard(player_index: int, raw_data: dict, is_batsman: bool):
     if is_batsman:
         c, d, e, f = 'Strikerate', 'Batsmen', 'Bowler', 'Batsman'
     else:
         c, d, e, f = 'Economyrate', 'Bowlers', 'Batsman', 'Bowler'
-    pl = raw_data[d][player_id]
+    team=list(raw_data[d])
+    pl = raw_data[d][team[player_index]]
     ag, a = pl['Against'], []
     for i in ag:
         k = ag[i]
-        a.append((k[e], k['Runs'],
+        a.append((str(k[e]).split(' ')[1], k['Runs'],
                   k['Balls'], k['Fours'], k['Sixes'], k['Dots'], k[c]))
     return pl[f], a
 
@@ -208,31 +208,23 @@ def get_color(index: str):
             '4': 'green', '6': 'blue'}[index]
 
 
-def shotsfig(player_index: int, raw_data: dict, want_fig: bool, psid: list):
-    if want_fig:
-        shots = raw_data['Batsmen'][psid[player_index-1]]['Shots']
-        BATS_POS = (496, 470)
-        UNIT_DIS = 110
-        def distance(k): return int(k['Distance'])*UNIT_DIS
-        im = Image.open("./res/field.jpg")
-        d = ImageDraw.Draw(im)
-        for i in shots:
-            X = (distance(i)*cos(radians(int(i['Angle'])+90)))+BATS_POS[0]
-            Y = (distance(i)*sin(radians(int(i['Angle'])+90)))+BATS_POS[1]
-            d.line([(X, Y), BATS_POS], fill=get_color(i['Runs']), width=4)
-            d.text((X, Y), i['Runs'], fill='black')
-        buf = io.BytesIO()
-        im.save(buf, format='jpeg')
-        buf.seek(0)
-        return buf
-    else:
-        players = raw_data['Batsmen']
-        has_shots = []
-        for i in players:
-            shot = players[i]['Shots']
-            if shot != []:
-                has_shots.append((i,players[i]['Batsman']))
-        return has_shots
+def shotsfig_bt(player_index: int, raw_data: dict):
+    psid = list(raw_data['Batsmen'])
+    shots = raw_data['Batsmen'][psid[player_index-1]]['Shots']
+    BATS_POS = (496, 470)
+    UNIT_DIS = 110
+    distance= lambda k: int(k['Distance'])*UNIT_DIS
+    im = Image.open("./res/field.jpg")
+    d = ImageDraw.Draw(im)
+    for i in shots:
+        X = (distance(i)*cos(radians(int(i['Angle'])+90)))+BATS_POS[0]
+        Y = (distance(i)*sin(radians(int(i['Angle'])+90)))+BATS_POS[1]
+        d.line([(X, Y), BATS_POS], fill=get_color(i['Runs']), width=4)
+        d.text((X, Y), i['Runs'], fill='black')
+    buf = io.BytesIO()
+    im.save(buf, format='jpeg')
+    buf.seek(0)
+    return buf
 
 
 def leaderboard(raw_data: dict):
@@ -255,12 +247,15 @@ for i in d[1]:
 #print(urlprov('tadped01312021199821', 2))
 #f=open('schedule.json', 'a')
 #f.write(str(fetch(urlprov('tadped01312021199821', 0, '', 0, '', ''))))
-'''a=shotsfig(0, fetch(
-    urlprov('tadped01312021199821', 1, 'batsman', 1, '', '')), False, [])
+#a=shotsfig_bt(3, fetch(urlprov('tadped01312021199821', 1, 'batsman', 1, '', '')))
+#f=open('buf.jpg', 'wb')
+#f.write(a.read())
 
+'''
 a = shotsfig(int(input()), fetch(
     urlprov('tadped01312021199821', 1, 'batsman', 1, '', '')), True, [])
 '''
 #print(leaderboard(fetch(urlprov('', 2, '', 0, 't20', 'bowl'))))
 #partnership(0, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
 #partnership(1, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
+#print(urlprov('tadped01312021199821', 1, 'batsman', 1, '', ''))
