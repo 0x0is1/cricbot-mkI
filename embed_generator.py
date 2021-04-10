@@ -1,13 +1,13 @@
 import discord,os
-
-from discord import player
+from simplejson import JSONDecodeError
+from numpy import str_
 import cricbotlib as cb
 from discord.ext import commands
 
 num_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '➡️']
-botid = 798505180076965891
+botid = os.environ.get('BOT_ID') #798505180076965891
 arrows_emojis=['⬆️', '⬇️', '➡️', '⬅️', '🔄']
-ids_con,psid=[],[]
+ids_con=[]
 curr_teams=[]
 plids=[]
 prctid=0
@@ -18,7 +18,6 @@ def string_padder(string):
 def null_normalizer(arg):
     if arg=='': return '0'
     else: return arg
-
 
 #embedders
 def schedule_embed(limit, raw_data):
@@ -93,7 +92,8 @@ def leaderboard_embed(mf,dtype):
     embed = discord.Embed(title='Leaderboard {0} {1}'.format(mf,dtype), color=0x03f8fc)
     embed.add_field(name='-',value='(Name) (Team Name) (Points) (Against)',inline=False)
     for i in rawlb:
-        embed.add_field(name='{0} Team:{1} Point:{2}'.format(i[0],i[1],i[2]), value='+'+i[3], inline=False)
+        if len(embed) < 5900:
+            embed.add_field(name='{0} Team:{1} Point:{2}'.format(i[0],i[1],i[2]), value='+'+i[3], inline=False)
     return embed
 
 def shotsfig_embed_f(raw_data: dict, match_index):
@@ -101,21 +101,12 @@ def shotsfig_embed_f(raw_data: dict, match_index):
     teams = raw_data['Teams']
     team_ids = list(teams)
     embed = discord.Embed(title=s[2], color=0x03f8fc)
-    embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
-    embed.add_field(name='React the team no. to get shots details', value='1. {0}\n2. {1}'.format(
+    embed.add_field(name='{0} vs {1}'.format(
+        s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0], s[1], s[3]), inline=False)
+    embed.add_field(name='Select the Inning:', value='1. {0}\n2. {1}'.format(
         teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
-    embed.add_field(name='_', value='`sessionid:SFG-{0}-{1}-{2}`'.format(match_index,team_ids[0],team_ids[1]), inline=True)
-    return embed
-
-def shotsfig_embed_f0(raw_data: dict, match_index):
-    embed = discord.Embed(title='Shots list', color=0x03f8fc)
-    global psid
-    l=cb.shotsfig(0, raw_data, False, [])
-    psid.clear()
-    for j,i in enumerate(l):
-        embed.add_field(name='{0}. {1}'.format(j+1,i[1]), value='_', inline=False)
-        psid.append(i[0])
-    embed.add_field(name='_', value='`sessionid:SFGL-{0}`'.format(match_index), inline=True)
+    embed.add_field(name='_', value='`sessionid:SFG-{0}-{1}-{2}-{3}`'.format(
+        match_index, team_ids[0], team_ids[1], str(1)), inline=True)
     return embed
 
 def fow_embed_f(raw_data, match_index):
@@ -205,9 +196,6 @@ def scorecard_embed_f(raw_data, match_index):
 def scorecard_embed(raw_data, inning_id):
     data_bt = cb.scorecard(inning_id, raw_data)[0]
     data_bl = cb.scorecard(inning_id, raw_data)[1]
-    embed = discord.Embed(title='Scorecard')
-    embed.add_field(
-        name='BATTING', value='', inline=False)
     vt = "```css\n.BATTING\n+=============++=============+\n[Name]           [Runs] [Balls] [4s]  [6s]  [D]    [S.R]\n"
     for i in range(0, len(data_bt)):
         k = data_bt[i]
@@ -222,12 +210,42 @@ def scorecard_embed(raw_data, inning_id):
     n = vt + vb
     return n
 
+def player_againstcard_embed_f(raw_data, match_index, n):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(
+        s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0], s[1], s[3]), inline=False)
+    if n == 0:
+        embed.add_field(name='Select the inning:', value='1. {0}\n2. {1}'.format(
+            teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+        embed.add_field(name='_', value='`sessionid:PAC-{0}`'.format(match_index), inline=True)
+    else:
+        embed.add_field(name='Select player type:', value='1. {0}\n2. {1}'.format('Batsmen', 'Bowlers'), inline=False)
+    return embed
+
+def player_againstcard_embed(player_index, raw_data, is_batsman):
+    data = cb.player_againstcard(player_index, raw_data, is_batsman)
+    heading = '```css\n[PLAYER PERFORMANCE]\n'
+    if is_batsman:
+        table_indices = '\n[Name]           [Runs] [Balls] [4s]  [6s]  [D]    [S.R]\n'
+    else:
+        table_indices = '\n[Name]           [Runs] [Balls] [4s]  [6s]  [D]    [E.R]\n'
+    nm = '.{} - against:\n'.format(data[0])
+    string=''
+    for k in data[1]:
+        string += '{}{:03n}    {:03n}     {:02n}    {:02n}    {:02n}    {}\n'.format(string_padder(k[0]), int(null_normalizer(k[1])), int(null_normalizer(k[2])), int(null_normalizer(k[3])), int(null_normalizer(k[4])), int(null_normalizer(k[5])), float(null_normalizer(k[6])))
+    return heading + nm + table_indices + string
+
+
+
 bot=commands.Bot(command_prefix='.')
 
 #events
 @bot.event
 async def on_ready():
-    print('bot is running.')
+    print('bot is online.')
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -254,20 +272,35 @@ async def on_reaction_add(reaction, user):
             m_id = ids_con[int(sess_args[1])]
             await message.edit(embed=score_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), sess_args[1]))
         if 'SFG' == sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
-            data=cb.fetch(cb.urlprov(m_id, 1, 'batsman', num_emojis.index(str(reaction)), '', ''))
-            em=shotsfig_embed_f0(data,sess_args[1])
-            await message.edit(embed=em)
             await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
             await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
-            for i in range(1, len(psid)+1):
-                await message.add_reaction(num_emojis[i])
+            m_id = ids_con[int(sess_args[1])]
+            data=cb.fetch(cb.urlprov(m_id, 1, 'batsman', num_emojis.index(str(reaction)), '', ''))
+            f=cb.shotsfig_bt(int(sess_args[4]), data)
+            file = discord.File(fp=f, filename='img{}.png'.format(m_id))
+            nm = await channel.send(file=file, content='sessionid:SFGL-{0}-{1}-{2}-{3}'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4]))
+            await nm.add_reaction(arrows_emojis[3])
+            await nm.add_reaction(arrows_emojis[2])
+
         if 'SFGL' == sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
             data = cb.fetch(cb.urlprov(m_id, 1, 'batsman', 1, '', ''))
-            f=cb.shotsfig(num_emojis.index(str(reaction)), data, True, psid)
-            file = discord.File(fp=f, filename='img{}.png'.format(m_id))
-            await channel.send(file=file)
+            if str(reaction) == arrows_emojis[2]:
+                curr_plindex = int(sess_args[4])+1
+            if str(reaction) == arrows_emojis[3]:
+                curr_plindex = int(sess_args[4])-1
+            if curr_plindex <0:
+                curr_plindex=0
+            try:
+                f=cb.shotsfig_bt(curr_plindex, data)
+                file = discord.File(fp=f, filename='img{}.png'.format(m_id))
+                content='sessionid:SFGL-{0}-{1}-{2}-{3}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex))
+            except IndexError: pass
+            nm=await channel.send(file=file, content=content)
+            await message.delete()
+            await nm.add_reaction(arrows_emojis[3])
+            await nm.add_reaction(arrows_emojis[2])
+
         if 'FOW' in sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
             await channel.send(file=fow_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction))))
@@ -286,7 +319,6 @@ async def on_reaction_add(reaction, user):
             teams = list(data['Teams'])
             team_id = num_emojis.index(str(reaction))
             prctid = team_id
-            #print(data)
             plids = list(data['Teams'][teams[team_id-1]]['Players'])
             player_id = plids[int(sess_args[4])]
             e = playercard_embed(data, player_id, teams[team_id-1])
@@ -316,10 +348,8 @@ async def on_reaction_add(reaction, user):
                 e.add_field(name='_', value='`sessionid:PRCI={0}={1}={2}={3}`'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex)), inline=True)
             except IndexError: pass
             await message.edit(embed=e)
-        
         #resetting splition back to normal '-'
         sess_args = session_id.split('-')
-        print(session_id)
         if 'SCR' == sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
             url = cb.urlprov(m_id, 0, '', 0, '', '')
@@ -336,6 +366,53 @@ async def on_reaction_add(reaction, user):
             raw_data = cb.fetch(url)
             string=scorecard_embed(raw_data, int(sess_args[4])-1)
             string = string + 'sessionid:SCRR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4])
+            await message.edit(content=string)
+        if 'PAC' == sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
+            e = player_againstcard_embed_f(data, sess_args[1], 1)
+            e.add_field(name='_', value='`sessionid:PACF-{0}-{1}-{2}`'.format(sess_args[1], num_emojis.index(str(reaction)), str(0)), inline=True)
+            await message.edit(embed=e)
+            
+        if 'PACF' in sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            inning_index = int(sess_args[2])
+            a = ['batsman', 'bowler']
+            b = [True, False]
+            player_type = num_emojis.index(str(reaction))-1
+            curr_plindex = int(sess_args[3])
+            url = cb.urlprov(m_id, 1, a[player_type], inning_index, '', '')
+            try:data = cb.fetch(url)
+            except JSONDecodeError: string='N/A'
+            try:
+                string = player_againstcard_embed(curr_plindex, data, b[player_type])
+                string += '\nsessionid:PACR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1], sess_args[2], str(curr_plindex), str_(player_type))
+            except IndexError: pass
+            nm=await channel.send(content=string)
+            await nm.add_reaction(arrows_emojis[3])
+            await nm.add_reaction(arrows_emojis[2])
+
+        if 'PACR' in sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            inning_index = int(sess_args[2])
+            a = ['batsman', 'bowler']
+            b = [True, False]
+            player_type = int(sess_args[4])
+            curr_plindex = int(sess_args[3])
+            url = cb.urlprov(m_id, 1, a[player_type], inning_index, '', '')
+            try:data = cb.fetch(url)
+            except JSONDecodeError: string='N/A'
+    
+            if str(reaction) == arrows_emojis[2]:
+                curr_plindex = int(sess_args[3])+1
+            if str(reaction) == arrows_emojis[3]:
+                curr_plindex = int(sess_args[3])-1
+            if curr_plindex <0:
+                curr_plindex=0
+            try:
+                string = player_againstcard_embed(curr_plindex, data, b[player_type])
+                string += '\nsessionid:PACR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1], sess_args[2], str(curr_plindex), str(player_type))
+            except IndexError: pass
             await message.edit(content=string)
 
 #commands
@@ -363,7 +440,7 @@ async def team(ctx, match_index: int):
 
 @bot.command(aliases=['lb', 'ldb'])
 async def leaderboard(ctx, match_format='odi', dtype='bat'):
-    await ctx.send(embed=partnership_embed_f(match_format, dtype))
+    await ctx.send(embed=leaderboard_embed(match_format, dtype))
 
 @bot.command(aliases=['prship','ps','pship'])
 async def partnership(ctx, match_index: int):
@@ -374,7 +451,6 @@ async def partnership(ctx, match_index: int):
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
-
 @bot.command(aliases=['shot', 'st', 'sts'])
 async def shots(ctx, match_index: int):
     global ids_con, curr_teams
@@ -384,13 +460,11 @@ async def shots(ctx, match_index: int):
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
-
-@bot.command(aliases=['fallofwicket', 'fall', 'wicketfall'])
-async def fow(ctx, match_index: int):
+@bot.command(aliases=['fow', 'fall', 'wicketfall'])
+async def fallofwicket(ctx, match_index: int):
     global ids_con, curr_teams
     m_id = ids_con[match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
-    #print(cb.urlprov(m_id, 0, '', 0, '', ''))
     message = await ctx.send(embed=fow_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
@@ -424,5 +498,15 @@ async def scorecard(ctx, match_index: int):
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
+@bot.command(aliases=['agcard', 'acard', 'ac'])
+async def againstcard(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    url = cb.urlprov(m_id, 0, '', 0, '', '')
+    raw_data = cb.fetch(url)
+    message=await ctx.send(embed=player_againstcard_embed_f(raw_data, match_index, 0))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
+    
 auth_token = os.environ.get('EXPERIMENTAL_BOT_TOKEN')
 bot.run(auth_token)
