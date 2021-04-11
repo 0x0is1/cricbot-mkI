@@ -41,12 +41,12 @@ def score_embed(raw_data, match_index):
         s=cb.miniscore(1,raw_data)
         embed = discord.Embed(title=s[2], color=0x03f8fc)
         embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
-        embed.add_field(name='**Score**', value='{0} {1}-{2} ({3})\n{4} {5}-{6} ({7})'.format(s[7],s[4],s[5],s[6],s0[7],s0[4],s0[5],s0[6]), inline=False)
+        embed.add_field(name='**Score**', value='{0} {1}-{2} ({3})\n{4} {5}-{6} ({7})\n**Status**: ***{8}***'.format(s[7],s[4],s[5],s[6],s0[7],s0[4],s0[5],s0[6], s0[9]), inline=False)
     except Exception: 
         s=cb.miniscore(0, raw_data)
         embed = discord.Embed(title=s[2], color=0x03f8fc)
         embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
-        embed.add_field(name='**Score**', value='{0} {1}-{2} ({3})'.format(s[7],s[4],s[5],s[6]), inline=False)
+        embed.add_field(name='**Score**', value='{0} {1}-{2} ({3})\n**Status**: ***{4}***'.format(s[7],s[4],s[5],s[6], s[9]), inline=False)
     embed.add_field(name='_', value='`sessionid:MSC-{0}`'.format(match_index), inline=True)
     return embed
 
@@ -107,6 +107,7 @@ def shotsfig_embed_f(raw_data: dict, match_index):
     embed.add_field(name='_', value='`sessionid:SFG-{0}-{1}-{2}-{3}`'.format(
         match_index, team_ids[0], team_ids[1], str(1)), inline=True)
     return embed
+
 def heatfig_embed_f(raw_data: dict, match_index):
     s = cb.miniscore(0, raw_data)
     teams = raw_data['Teams']
@@ -267,6 +268,25 @@ def lastover_embed(raw_data, inning_id):
         embed.add_field(name='{0}:'.format(i[0]), value='**Score**: {:02n}\n**Wicket**: {:02n}\n**Run Rate**: {}'.format(int(null_normalizer(i[1])), int(null_normalizer(i[2])), float(null_normalizer(i[3]))), inline=True)
     return embed
 
+def pshipc_embed_f(match_index,raw_data):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
+    embed.add_field(name='Select the inning:', value='1. {0}\n2. {1}'.format(
+        teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+    embed.add_field(name='_', value='`sessionid:PPC-{0}`'.format(match_index), inline=True)
+    return embed
+
+def pshipc_embed(raw_data, inning_id):
+    data = cb.curr_partnership(raw_data, inning_id)
+    embed = discord.Embed(title='Current Partnership', color=0x03f8fc)
+    embed.add_field(name='For Inning {0}:'.format(data[0]), value='**Runs**: {0}\n**Balls**: {1}\n**Partners**:\n**{2}:**\n*Runs*: {3}\n*Balls*: {4}\n**{5}:**\n*Runs*: {6}\n*Balls*: {7}'.format(
+        data[0], data[1], data[2], data[3], data[4],data[5], data[6], data[7] 
+    ), inline=True)
+    return embed
+
 bot=commands.Bot(command_prefix='.')
 
 #events
@@ -285,6 +305,7 @@ async def on_reaction_add(reaction, user):
             session_id=str(msg.embeds[0].fields[-1].value).split('sessionid:')[1].split('`')[0]
         except Exception:
             session_id = str(msg.content).split('sessionid:')[1].split('\n')[0]
+        except IndexError: pass
         await message.remove_reaction(reaction, user)
         sess_args=session_id.split('-')
         if 'TEF' in sess_args[0]:
@@ -304,8 +325,10 @@ async def on_reaction_add(reaction, user):
             m_id = ids_con[int(sess_args[1])]
             data=cb.fetch(cb.urlprov(m_id, 1, 'batsman', num_emojis.index(str(reaction)), '', ''))
             f=cb.shotsfig_bt(int(sess_args[4]), data)
-            file = discord.File(fp=f, filename='img{}.png'.format(m_id))
-            nm = await channel.send(file=file, content='sessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4],num_emojis.index(str(reaction))))
+            file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
+            content='**Name: **{}'.format(f[0])
+            content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4],num_emojis.index(str(reaction)))
+            nm = await channel.send(file=file, content=content)
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
 
@@ -318,12 +341,16 @@ async def on_reaction_add(reaction, user):
                 curr_plindex = int(sess_args[4])-1
             if curr_plindex <0:
                 curr_plindex=0
+            content='**Name: **{}'.format(f[0])
+            content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex), sess_args[4])
             try:
                 f=cb.shotsfig_bt(curr_plindex, data)
                 file = discord.File(fp=f, filename='img{}.png'.format(m_id))
-                content='sessionid:SFGL-{0}-{1}-{2}-{3}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex))
+                nm=await channel.send(file=file, content=content)
             except IndexError: pass
-            nm=await channel.send(file=file, content=content)
+            except JSONDecodeError: 
+                nm=await channel.send(content=content)
+                content+='\nN/A'
             await message.delete()
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
@@ -333,18 +360,18 @@ async def on_reaction_add(reaction, user):
             await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
             m_id = ids_con[int(sess_args[1])]
             url=cb.urlprov(m_id, 1, 'bowler', num_emojis.index(str(reaction)), '', '')
-            print(url)
             data=cb.fetch(url)
             f=cb.shotsfig_bl(int(sess_args[2]), data)
-            file = discord.File(fp=f, filename='img{}.png'.format(m_id))
-            nm = await channel.send(file=file, content='sessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1],sess_args[2], num_emojis.index(str(reaction))))
+            content='**Name: **{}'.format(f[0])
+            content+='\nsessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1],sess_args[2], num_emojis.index(str(reaction)))
+            file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
+            nm = await channel.send(file=file, content=content)
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
 
         if 'HFGL' == sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
             url=cb.urlprov(m_id, 1, 'bowler', 1, '', '')
-            print(url)
             data = cb.fetch(url)
             if str(reaction) == arrows_emojis[2]:
                 curr_plindex = int(sess_args[2])+1
@@ -352,11 +379,11 @@ async def on_reaction_add(reaction, user):
                 curr_plindex = int(sess_args[2])-1
             if curr_plindex <0:
                 curr_plindex=0
-            print(curr_plindex)
-            content='sessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1], str(curr_plindex), sess_args[3])
+            content='**Name: **{}'.format(f[0])            
+            content+='\nsessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1], str(curr_plindex), sess_args[3])
             try:
                 f=cb.shotsfig_bl(curr_plindex, data)
-                file = discord.File(fp=f, filename='img{}.png'.format(m_id))
+                file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
                 if file != None:
                     nm=await channel.send(file=file, content=content)
                 else: raise IndexError
@@ -482,11 +509,23 @@ async def on_reaction_add(reaction, user):
             await message.edit(content=string)
 
         if 'LO' in sess_args[0]:
+            await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
             m_id = ids_con[int(sess_args[1])]
             inning_index = num_emojis.index(str(reaction))
             url = cb.urlprov(m_id, 0, '', inning_index, '', '')
             raw_data = cb.fetch(url)
             e=lastover_embed(raw_data, inning_index-1)
+            await message.edit(embed=e)
+
+        if 'PPC' in sess_args[0]:
+            await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
+            m_id = ids_con[int(sess_args[1])]
+            inning_index = num_emojis.index(str(reaction))
+            url = cb.urlprov(m_id, 0, '', inning_index, '', '')
+            raw_data = cb.fetch(url)
+            e=pshipc_embed(raw_data, inning_index-1)
             await message.edit(embed=e)
 
 #commands
@@ -601,6 +640,17 @@ async def lastovers(ctx, match_index: int):
     message=await ctx.send(embed=lastover_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
-   
+
+@bot.command(aliases=['pc', 'pshipc', 'pshipcurr'])
+async def partnership_current(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    url = cb.urlprov(m_id, 0, '', 0, '', '')
+    print(url)
+    raw_data = cb.fetch(url)
+    message=await ctx.send(embed=pshipc_embed_f(match_index, raw_data))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
+
 auth_token = os.environ.get('EXPERIMENTAL_BOT_TOKEN')
 bot.run(auth_token)
