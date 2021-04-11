@@ -361,7 +361,7 @@ async def on_reaction_add(reaction, user):
                 f=cb.shotsfig_bt(curr_plindex, data)
                 content='**Name: **{}'.format(f[0])
                 content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex), sess_args[4])
-                file = discord.File(fp=f, filename='img{}.png'.format(m_id))
+                file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
                 nm=await channel.send(file=file, content=content)
             except IndexError: pass
             except JSONDecodeError: 
