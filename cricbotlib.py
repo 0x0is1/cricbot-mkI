@@ -45,6 +45,10 @@ def miniscore(inning_id: int, data: dict):
     inning = data['Innings'][inning_id]
     teams = data['Teams']
     md = data['Matchdetail']
+    try:
+        a=md['Result']
+    except Exception:
+        a=md['Status']
     return (
         md['Match']['Date'],
         md['Match']['Offset'].replace('+', ''),
@@ -55,6 +59,7 @@ def miniscore(inning_id: int, data: dict):
         inning['Overs'],
         teams[inning['Battingteam']]['Name_Short'],
         teams[inning['Bowlingteam']]['Name_Short'],
+        a
     )
 
 def fetch_team(team_id: str):
@@ -81,8 +86,10 @@ def scorecard(inning_id: int, data: dict):
     btplayer = data['Teams'][btteam_id]['Players']
     blplayer = data['Teams'][blteam_id]['Players']
     for i in batsmen:
-        btsb.append(((btplayer[i['Batsman']]['Name_Full']).split(' ')[-1],
-                     i['Runs'], i['Balls'], i['Fours'],
+        name=(btplayer[i['Batsman']]['Name_Full']).split(' ')[-1]
+        if i['DismissalId'] == 'no':
+            name += '*'
+        btsb.append((name,i['Runs'], i['Balls'], i['Fours'],
                      i['Sixes'], i['Dots'], i['Strikerate']))
     for i in bowler:
         blsb.append(((blplayer[i['Bowler']]['Name_Full']).split(' ')[-1], i['Runs'],i['Overs'],
@@ -205,11 +212,11 @@ def player_againstcard(player_index: int, raw_data: dict, is_batsman: bool):
 
 def get_color(index: str):
     return {'0':'white', '1': 'orange', '2': 'purple', '3': 'pink',
-            '4': 'green', '6': 'blue'}[index]
-
+            '4': 'green', '6': 'blue', 'wicket': 'red'}[index]
 
 def shotsfig_bt(player_index: int, raw_data: dict):
     psid = list(raw_data['Batsmen'])
+    name= raw_data['Batsmen'][psid[player_index-1]]['Batsman']
     shots = raw_data['Batsmen'][psid[player_index-1]]['Shots']
     BATS_POS = (496, 470)
     UNIT_DIS = 110
@@ -224,11 +231,12 @@ def shotsfig_bt(player_index: int, raw_data: dict):
     buf = io.BytesIO()
     im.save(buf, format='jpeg')
     buf.seek(0)
-    return buf
+    return name, buf
 
 def shotsfig_bl(player_index:int, raw_data):
     psid = list(raw_data['Bowlers'])
     pitch = raw_data['Bowlers'][psid[player_index]]['Pitches']
+    name= raw_data['Bowlers'][psid[player_index-1]]['Bowler']
     UNIT_DIS = 2
     pseudo_originX, pseudo_originY=75,20
     ball_len, ball_wid = 18,10
@@ -237,14 +245,22 @@ def shotsfig_bl(player_index:int, raw_data):
     #75,20,250,310
     for i in pitch:
         a=i['XY'].split(',')
+        try: 
+            i['Iswicket']
+            iswicket=True
+        except Exception:
+            iswicket=False
         X1=(pseudo_originX+int(a[1]))*UNIT_DIS-20
         Y1=(pseudo_originY+int(a[0]))*UNIT_DIS
-        runs=i['Runs']
+        if iswicket:
+            runs='wicket'
+        else:
+            runs=i['Runs']
         d.ellipse(((X1, Y1), (X1+ball_len, Y1+ball_wid)), fill=get_color(runs), outline='yellow')
     buf = io.BytesIO()
     im.save(buf, format='png')
     buf.seek(0)
-    return buf
+    return name, buf
         
 def leaderboard(raw_data: dict):
     r, a = raw_data['bat-rank']['rank'], []
@@ -252,8 +268,23 @@ def leaderboard(raw_data: dict):
     i['Country'], i['Points'], i['careerbest']))
     return a
 
-def now_playing(raw_data, inning_id):
-    return
+def curr_partnership(raw_data, inning_id):
+    btteam_id = raw_data['Innings'][inning_id]['Battingteam']
+    pshipc = raw_data['Innings'][inning_id]['Partnership_Current']
+    btplayer = raw_data['Teams'][btteam_id]['Players']
+    name1=(btplayer[pshipc['Batsmen'][0]['Batsman']]['Name_Full']).split(' ')[-1]
+    name2=(btplayer[pshipc['Batsmen'][1]['Batsman']]['Name_Full']).split(' ')[-1]
+    return (
+        pshipc['Runs'],
+        pshipc['Balls'],
+        name1,
+        pshipc['Batsmen'][0]['Runs'],
+        pshipc['Batsmen'][0]['Balls'],
+        name2,
+        pshipc['Batsmen'][1]['Runs'],
+        pshipc['Batsmen'][1]['Balls'],
+    )
+
 
 
 #print(shotsfig('3852', fetch('inen02132021199340', 2)))
