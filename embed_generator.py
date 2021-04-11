@@ -20,7 +20,7 @@ def null_normalizer(arg):
 
 #embedders
 def schedule_embed(limit, raw_data):
-    schedule = cb.schedule(limit,raw_data)
+    schedule = cb.schedule(limit,raw_data)[-5:]
     embed = discord.Embed(title='Schedule', color=0x03f8fc)
     global ids_con
     ids_con.clear()
@@ -282,7 +282,7 @@ def pshipc_embed_f(match_index,raw_data):
 def pshipc_embed(raw_data, inning_id):
     data = cb.curr_partnership(raw_data, inning_id)
     embed = discord.Embed(title='Current Partnership', color=0x03f8fc)
-    embed.add_field(name='For Inning {0}:'.format(data[0]), value='**Runs**: {0}\n**Balls**: {1}\n**Partners**:\n**{2}:**\n*Runs*: {3}\n*Balls*: {4}\n**{5}:**\n*Runs*: {6}\n*Balls*: {7}'.format(
+    embed.add_field(name='For Inning {0}:'.format(data[0]), value='**Runs**: {0}**Balls**: {1}\n**Partners**:\n**{2}:**\n*Runs*: {3}*Balls*: {4}\n**{5}:**\n*Runs*: {6}*Balls*: {7}'.format(
         data[0], data[1], data[2], data[3], data[4],data[5], data[6], data[7] 
     ), inline=True)
     return embed
@@ -308,6 +308,20 @@ async def on_reaction_add(reaction, user):
         except IndexError: pass
         await message.remove_reaction(reaction, user)
         sess_args=session_id.split('-')
+        if 'SCD' in sess_args[0]:
+            cshtype = int(sess_args[1])
+            curr_count = int(sess_args[2])
+            if str(reaction) == arrows_emojis[1]:
+                curr_count+=5
+            if str(reaction) == arrows_emojis[0]:
+                curr_count-=5
+            if curr_count < 5:
+                curr_count=5
+            url = 'https://cricket.yahoo.net/sifeeds/multisport/?methodtype=3&client=24&sport=1&league=0&timezone=0530&language=en&gamestate='+str(cshtype)
+            e=schedule_embed(curr_count, cb.fetch(url))            
+            e.add_field(name='_', value='sessionid:SCD-{0}-{1}'.format(str(cshtype), str(curr_count)))
+            await message.edit(embed=e)
+
         if 'TEF' in sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
             e=team_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')),sess_args[num_emojis.index(str(reaction))+1])
@@ -530,10 +544,14 @@ async def on_reaction_add(reaction, user):
 
 #commands
 @bot.command(aliases=['sh', 'sd'])
-async def schedule(ctx, count=5, shtype='live'):
+async def schedule(ctx, shtype='live'):
     cshtype = {'ended': 4, 'upcoming': 2, 'live': 1, 'all': 3}[shtype]
     url = 'https://cricket.yahoo.net/sifeeds/multisport/?methodtype=3&client=24&sport=1&league=0&timezone=0530&language=en&gamestate='+str(cshtype)
-    await ctx.send(embed=schedule_embed(count, cb.fetch(url)))
+    e=schedule_embed(5, cb.fetch(url))
+    e.add_field(name='_', value='sessionid:SCD-{0}-{1}'.format(str(cshtype), str(5)))
+    message=await ctx.send(embed=e)
+    await message.add_reaction(arrows_emojis[0])
+    await message.add_reaction(arrows_emojis[1])
 
 @bot.command(aliases=['sc', 'ms', 'miniscore'])
 async def score(ctx, match_index: int):
