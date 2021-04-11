@@ -107,6 +107,18 @@ def shotsfig_embed_f(raw_data: dict, match_index):
     embed.add_field(name='_', value='`sessionid:SFG-{0}-{1}-{2}-{3}`'.format(
         match_index, team_ids[0], team_ids[1], str(1)), inline=True)
     return embed
+def heatfig_embed_f(raw_data: dict, match_index):
+    s = cb.miniscore(0, raw_data)
+    teams = raw_data['Teams']
+    team_ids = list(teams)
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(
+        s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0], s[1], s[3]), inline=False)
+    embed.add_field(name='Select the Inning:', value='1. {0}\n2. {1}'.format(
+        teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
+    embed.add_field(name='_', value='`sessionid:HFG-{0}-{1}`'.format(
+        match_index, str(0)), inline=True)
+    return embed
 
 def fow_embed_f(raw_data, match_index):
     s = cb.miniscore(0, raw_data)
@@ -293,13 +305,13 @@ async def on_reaction_add(reaction, user):
             data=cb.fetch(cb.urlprov(m_id, 1, 'batsman', num_emojis.index(str(reaction)), '', ''))
             f=cb.shotsfig_bt(int(sess_args[4]), data)
             file = discord.File(fp=f, filename='img{}.png'.format(m_id))
-            nm = await channel.send(file=file, content='sessionid:SFGL-{0}-{1}-{2}-{3}'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4]))
+            nm = await channel.send(file=file, content='sessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4],num_emojis.index(str(reaction))))
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
 
         if 'SFGL' == sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
-            data = cb.fetch(cb.urlprov(m_id, 1, 'batsman', 1, '', ''))
+            data = cb.fetch(cb.urlprov(m_id, 1, 'batsman', sess_args[5], '', ''))
             if str(reaction) == arrows_emojis[2]:
                 curr_plindex = int(sess_args[4])+1
             if str(reaction) == arrows_emojis[3]:
@@ -312,6 +324,45 @@ async def on_reaction_add(reaction, user):
                 content='sessionid:SFGL-{0}-{1}-{2}-{3}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex))
             except IndexError: pass
             nm=await channel.send(file=file, content=content)
+            await message.delete()
+            await nm.add_reaction(arrows_emojis[3])
+            await nm.add_reaction(arrows_emojis[2])
+
+        if 'HFG' == sess_args[0]:
+            await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
+            m_id = ids_con[int(sess_args[1])]
+            url=cb.urlprov(m_id, 1, 'bowler', num_emojis.index(str(reaction)), '', '')
+            print(url)
+            data=cb.fetch(url)
+            f=cb.shotsfig_bl(int(sess_args[2]), data)
+            file = discord.File(fp=f, filename='img{}.png'.format(m_id))
+            nm = await channel.send(file=file, content='sessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1],sess_args[2], num_emojis.index(str(reaction))))
+            await nm.add_reaction(arrows_emojis[3])
+            await nm.add_reaction(arrows_emojis[2])
+
+        if 'HFGL' == sess_args[0]:
+            m_id = ids_con[int(sess_args[1])]
+            url=cb.urlprov(m_id, 1, 'bowler', 1, '', '')
+            print(url)
+            data = cb.fetch(url)
+            if str(reaction) == arrows_emojis[2]:
+                curr_plindex = int(sess_args[2])+1
+            if str(reaction) == arrows_emojis[3]:
+                curr_plindex = int(sess_args[2])-1
+            if curr_plindex <0:
+                curr_plindex=0
+            print(curr_plindex)
+            content='sessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1], str(curr_plindex), sess_args[3])
+            try:
+                f=cb.shotsfig_bl(curr_plindex, data)
+                file = discord.File(fp=f, filename='img{}.png'.format(m_id))
+                if file != None:
+                    nm=await channel.send(file=file, content=content)
+                else: raise IndexError
+            except IndexError: 
+                content+='\nN/A'
+                nm=await channel.send(content=content)
             await message.delete()
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
@@ -437,6 +488,7 @@ async def on_reaction_add(reaction, user):
             raw_data = cb.fetch(url)
             e=lastover_embed(raw_data, inning_index-1)
             await message.edit(embed=e)
+
 #commands
 @bot.command(aliases=['sh', 'sd'])
 async def schedule(ctx, count=5, shtype='live'):
@@ -481,6 +533,16 @@ async def shots(ctx, match_index: int):
     message = await ctx.send(embed=shotsfig_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
+
+@bot.command(aliases=['hmp', 'heat', 'pitch'])
+async def heatmap(ctx, match_index: int):
+    global ids_con, curr_teams
+    m_id = ids_con[match_index]
+    raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
+    message = await ctx.send(embed=heatfig_embed_f(raw_data, match_index))
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
+
 
 @bot.command(aliases=['fow', 'fall', 'wicketfall'])
 async def fallofwicket(ctx, match_index: int):
