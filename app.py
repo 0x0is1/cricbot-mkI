@@ -343,10 +343,12 @@ async def on_reaction_add(reaction, user):
             content='**Name: **{}'.format(f[0])
             content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4],num_emojis.index(str(reaction)))
             nm = await channel.send(file=file, content=content)
+            await message.delete()
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
 
         if 'SFGL' == sess_args[0]:
+            content=''
             m_id = ids_con[int(sess_args[1])]
             data = cb.fetch(cb.urlprov(m_id, 1, 'batsman', sess_args[5], '', ''))
             if str(reaction) == arrows_emojis[2]:
@@ -355,10 +357,10 @@ async def on_reaction_add(reaction, user):
                 curr_plindex = int(sess_args[4])-1
             if curr_plindex <0:
                 curr_plindex=0
-            content='**Name: **{}'.format(f[0])
-            content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex), sess_args[4])
             try:
                 f=cb.shotsfig_bt(curr_plindex, data)
+                content='**Name: **{}'.format(f[0])
+                content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex), sess_args[4])
                 file = discord.File(fp=f, filename='img{}.png'.format(m_id))
                 nm=await channel.send(file=file, content=content)
             except IndexError: pass
@@ -380,6 +382,7 @@ async def on_reaction_add(reaction, user):
             content+='\nsessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1],sess_args[2], num_emojis.index(str(reaction)))
             file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
             nm = await channel.send(file=file, content=content)
+            await message.delete()
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
 
@@ -387,16 +390,17 @@ async def on_reaction_add(reaction, user):
             m_id = ids_con[int(sess_args[1])]
             url=cb.urlprov(m_id, 1, 'bowler', 1, '', '')
             data = cb.fetch(url)
+            content=''
             if str(reaction) == arrows_emojis[2]:
                 curr_plindex = int(sess_args[2])+1
             if str(reaction) == arrows_emojis[3]:
                 curr_plindex = int(sess_args[2])-1
             if curr_plindex <0:
                 curr_plindex=0
-            content='**Name: **{}'.format(f[0])            
-            content+='\nsessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1], str(curr_plindex), sess_args[3])
             try:
                 f=cb.shotsfig_bl(curr_plindex, data)
+                content='**Name: **{}'.format(f[0])            
+                content+='\nsessionid:HFGL-{0}-{1}-{2}'.format(sess_args[1], str(curr_plindex), sess_args[3])
                 file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
                 if file != None:
                     nm=await channel.send(file=file, content=content)
