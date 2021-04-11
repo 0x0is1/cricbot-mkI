@@ -18,7 +18,7 @@ def fetch(url):
     return requests.get(url).json()
 
 def schedule(limit: int, raw_data: dict):
-    data = {}
+    data = []
     team_names: str = lambda item_type, match_index, inning_id: raw_data[
         'matches'][match_index]['participants'][inning_id][item_type]
     event_fetch: str = lambda match_index, item_type: raw_data['matches'][match_index][item_type]
@@ -27,7 +27,7 @@ def schedule(limit: int, raw_data: dict):
             team_names('name', i, 0)
         except(IndexError, KeyError):
             break
-        data[i] = (
+        data.append((
             team_names('name', i, 0),
             team_names('name', i, 1),
             team_names('id', i, 0),
@@ -38,6 +38,7 @@ def schedule(limit: int, raw_data: dict):
             event_fetch(i, 'start_date'),
             event_fetch(i, 'venue_name'),
             event_fetch(i, 'game_id')
+            )
         )
     return data
 
