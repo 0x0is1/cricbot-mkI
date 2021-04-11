@@ -204,7 +204,7 @@ def player_againstcard(player_index: int, raw_data: dict, is_batsman: bool):
 
 
 def get_color(index: str):
-    return {'1': 'orange', '2': 'purple', '3': 'pink',
+    return {'0':'white', '1': 'orange', '2': 'purple', '3': 'pink',
             '4': 'green', '6': 'blue'}[index]
 
 
@@ -226,12 +226,35 @@ def shotsfig_bt(player_index: int, raw_data: dict):
     buf.seek(0)
     return buf
 
-
+def shotsfig_bl(player_index:int, raw_data):
+    psid = list(raw_data['Bowlers'])
+    pitch = raw_data['Bowlers'][psid[player_index]]['Pitches']
+    UNIT_DIS = 2
+    pseudo_originX, pseudo_originY=75,20
+    ball_len, ball_wid = 18,10
+    im=Image.open('./res/pitchmap.png')
+    d = ImageDraw.Draw(im)
+    #75,20,250,310
+    for i in pitch:
+        a=i['XY'].split(',')
+        X1=(pseudo_originX+int(a[1]))*UNIT_DIS-20
+        Y1=(pseudo_originY+int(a[0]))*UNIT_DIS
+        runs=i['Runs']
+        d.ellipse(((X1, Y1), (X1+ball_len, Y1+ball_wid)), fill=get_color(runs), outline='yellow')
+    buf = io.BytesIO()
+    im.save(buf, format='png')
+    buf.seek(0)
+    return buf
+        
 def leaderboard(raw_data: dict):
     r, a = raw_data['bat-rank']['rank'], []
     for i in r:a.append((i['Player-name'],
     i['Country'], i['Points'], i['careerbest']))
     return a
+
+def now_playing(raw_data, inning_id):
+    return
+
 
 #print(shotsfig('3852', fetch('inen02132021199340', 2)))
 
@@ -259,3 +282,5 @@ a = shotsfig(int(input()), fetch(
 #partnership(0, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
 #partnership(1, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
 #print(urlprov('tadped01312021199821', 1, 'batsman', 1, '', ''))
+#d=fetch('https://cricket.yahoo.net/sifeeds/cricket/live/json/mibc04092021199877_bowler_splits_1.json')
+#shotsfig_bl(3, d)
