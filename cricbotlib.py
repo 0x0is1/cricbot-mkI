@@ -133,13 +133,14 @@ def fow(inning_id: int, raw_data: dict):
     mp.xlabel('Overs', fontsize=14)
     mp.ylabel('Runs', fontsize=14)
     mp.plot(o, s, color='red', marker='o', linewidth=3,
-            markerfacecolor='red', markersize=8)
+            markerfacecolor='red', markersize=8, label='Wickets')
     for i in range(len(o)):
         mp.annotate('('+str(s[i])+'-'+str(o[i])+')',
                     (o[i]+0.1, s[i]-2), fontsize=7)
     s.append(int(sc['Total']))
     o.append(float(sc['Overs']))
-    mp.plot(o, s, color='blue')
+    mp.plot(o, s, color='blue', label='Runs')
+    mp.legend(loc='lower right')
     fig = mp.gcf()
     buf = io.BytesIO()
     fig.savefig(buf, format='png')
@@ -210,9 +211,8 @@ def player_againstcard(player_index: int, raw_data: dict, is_batsman: bool):
                   k['Balls'], k['Fours'], k['Sixes'], k['Dots'], k[c]))
     return pl[f], a
 
-
 def get_color(index: str):
-    return {'0':'white', '1': 'orange', '2': 'purple', '3': 'pink',
+    return {'0':'white', '1': 'orange', '2': 'purple', '3': 'brown',
             '4': 'green', '6': 'blue', 'wicket': 'red'}[index]
 
 def shotsfig_bt(player_index: int, raw_data: dict):
@@ -223,12 +223,14 @@ def shotsfig_bt(player_index: int, raw_data: dict):
     UNIT_DIS = 110
     distance= lambda k: int(k['Distance'])*UNIT_DIS
     im = Image.open("./res/field.jpg")
+    legend_image =Image.open("./res/legend-1.png")
     d = ImageDraw.Draw(im)
     for i in shots:
         X = (distance(i)*cos(radians(int(i['Angle'])+90)))+BATS_POS[0]
         Y = (distance(i)*sin(radians(int(i['Angle'])+90)))+BATS_POS[1]
         d.line([(X, Y), BATS_POS], fill=get_color(i['Runs']), width=4)
         d.text((X, Y), i['Runs'], fill='black')
+    im.paste(legend_image, (0,0))
     buf = io.BytesIO()
     im.save(buf, format='jpeg')
     buf.seek(0)
@@ -242,6 +244,7 @@ def shotsfig_bl(player_index:int, raw_data):
     pseudo_originX, pseudo_originY=75,20
     ball_len, ball_wid = 18,10
     im=Image.open('./res/pitchmap.png')
+    legend_image =Image.open("./res/legend-1.png")
     d = ImageDraw.Draw(im)
     #75,20,250,310
     for i in pitch:
@@ -258,6 +261,7 @@ def shotsfig_bl(player_index:int, raw_data):
         else:
             runs=i['Runs']
         d.ellipse(((X1, Y1), (X1+ball_len, Y1+ball_wid)), fill=get_color(runs), outline='yellow')
+    im.paste(legend_image, (0,0))    
     buf = io.BytesIO()
     im.save(buf, format='png')
     buf.seek(0)
