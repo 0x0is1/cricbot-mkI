@@ -285,36 +285,3 @@ def curr_partnership(raw_data, inning_id):
         pshipc['Batsmen'][1]['Runs'],
         pshipc['Batsmen'][1]['Balls'],
     )
-
-
-
-#print(shotsfig('3852', fetch('inen02132021199340', 2)))
-
-#print(fow(0, fetch('tadped01312021199821', 1)))
-#data=playercard('1989', '4476', fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')),1)
-'''for i in range(0, len(data[2])):
-    print(data[2][i], data[3][i])'''
-    
-'''d=scorecard(1, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
-for i in d[1]:
-    print(i)'''
-
-#print(urlprov('tadped01312021199821', 2))
-#f=open('schedule.json', 'a')
-#f.write(str(fetch(urlprov('tadped01312021199821', 0, '', 0, '', ''))))
-#a=shotsfig_bt(3, fetch(urlprov('tadped01312021199821', 1, 'batsman', 1, '', '')))
-#f=open('buf.jpg', 'wb')
-#f.write(a.read())
-
-'''
-a = shotsfig(int(input()), fetch(
-    urlprov('tadped01312021199821', 1, 'batsman', 1, '', '')), True, [])
-'''
-#print(leaderboard(fetch(urlprov('', 2, '', 0, 't20', 'bowl'))))
-#partnership(0, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
-#partnership(1, fetch(urlprov('tadped01312021199821', 0, '', 0, '', '')))
-#print(urlprov('tadped01312021199821', 1, 'batsman', 1, '', ''))
-#d=fetch('https://cricket.yahoo.net/sifeeds/cricket/live/json/mibc04092021199877_bowler_splits_1.json')
-#shotsfig_bl(3, d)
-d=fetch('https://cricket.yahoo.net/sifeeds/cricket/static/json/iccranking-test-bowl.json')
-leaderboard(d, 5)
