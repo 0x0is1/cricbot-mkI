@@ -1,6 +1,7 @@
 import discord,os
 from discord.ext.commands.errors import CommandInvokeError, CommandNotFound
-from simplejson import JSONDecodeError
+from numpy import int0
+from simplejson.errors import JSONDecodeError
 import cricbotlib as cb
 from discord.ext import commands
 
@@ -158,8 +159,6 @@ def shotsfig_embed_f(raw_data: dict, match_index):
         s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0], s[1], s[3]), inline=False)
     embed.add_field(name='Select the Inning:', value='1. {0}\n2. {1}'.format(
         teams[team_ids[0]]['Name_Full'], teams[team_ids[1]]['Name_Full']), inline=False)
-    embed.add_field(name='_', value='`sessionid:SFG-{0}-{1}-{2}-{3}`'.format(
-        match_index, team_ids[0], team_ids[1], str(1)), inline=True)
     return embed
 
 def heatfig_embed_f(raw_data: dict, match_index):
@@ -360,7 +359,8 @@ async def on_reaction_add(reaction, user):
             session_id=str(msg.embeds[0].fields[-1].value).split('sessionid:')[1].split('`')[0]
         except Exception:
             session_id = str(msg.content).split('sessionid:')[1].split('\n')[0]
-        except IndexError: pass
+        except IndexError:
+            pass
         await message.remove_reaction(reaction, user)
         sess_args=session_id.split('-')
         if 'SCD' in sess_args[0]:
@@ -389,39 +389,47 @@ async def on_reaction_add(reaction, user):
             m_id = ids_con[int(sess_args[1])]
             await message.edit(embed=score_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), sess_args[1]))
         if 'SFG' == sess_args[0]:
-            await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
-            await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
             m_id = ids_con[int(sess_args[1])]
-            data=cb.fetch(cb.urlprov(m_id, 1, 'batsman', num_emojis.index(str(reaction)), '', ''))
-            f=cb.shotsfig_bt(int(sess_args[4]), data)
+            inning_id=num_emojis.index(str(reaction))
+            url=cb.urlprov(m_id, 1, 'batsman', inning_id, '', '')
+            print(url)
+            curr_plindex=int(sess_args[2])
+            data=cb.fetch(url)
+            f=cb.shotsfig_bt(curr_plindex, data)
             file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
             content='**Name: **{}'.format(f[0])
-            content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4],num_emojis.index(str(reaction)))
-            nm = await channel.send(file=file, content=content)
+            content+='\nsessionid:SFGL-{0}-{1}-{2}'.format(sess_args[1],(str(curr_plindex)),inning_id)
             await message.delete()
+            nm = await channel.send(file=file, content=content)
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
 
         if 'SFGL' == sess_args[0]:
             content=''
             m_id = ids_con[int(sess_args[1])]
-            data = cb.fetch(cb.urlprov(m_id, 1, 'batsman', sess_args[5], '', ''))
+            inning_id = int(sess_args[3])
+            curr_plindex= int(sess_args[2])
+            url=cb.urlprov(m_id, 1, 'batsman', inning_id, '', '')
+            print(url)
+            data = cb.fetch(url)
             if str(reaction) == arrows_emojis[2]:
-                curr_plindex = int(sess_args[4])+1
+                curr_plindex += 1
             if str(reaction) == arrows_emojis[3]:
-                curr_plindex = int(sess_args[4])-1
+                curr_plindex -= 1
             if curr_plindex <0:
                 curr_plindex=0
+            b='\nsessionid:SFGL-{0}-{1}-{2}'.format(sess_args[1],str(curr_plindex), str(inning_id))
             try:
                 f=cb.shotsfig_bt(curr_plindex, data)
                 content='**Name: **{}'.format(f[0])
-                content+='\nsessionid:SFGL-{0}-{1}-{2}-{3}-{4}'.format(sess_args[1], sess_args[2], sess_args[3], str(curr_plindex), sess_args[4])
+                content+=b
                 file = discord.File(fp=f[1], filename='img{}.png'.format(m_id))
                 nm=await channel.send(file=file, content=content)
-            except IndexError: pass
             except JSONDecodeError: 
                 content+='\nN/A'
+                content+=b
                 nm=await channel.send(content=content)
+            except (IndexError,UnboundLocalError): pass
             await message.delete()
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
@@ -670,7 +678,9 @@ async def shots(ctx, match_index: int):
     global ids_con, curr_teams
     m_id = ids_con[match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
-    message = await ctx.send(embed=shotsfig_embed_f(raw_data, match_index))
+    e=shotsfig_embed_f(raw_data, match_index)
+    e.add_field(name='_', value='sessionid:SFG-{0}-{1}'.format(match_index, str(0)), inline=True)
+    message = await ctx.send(embed=e)
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
