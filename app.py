@@ -1,4 +1,5 @@
 import discord,os
+from discord.ext.commands.errors import CommandInvokeError, CommandNotFound
 from simplejson import JSONDecodeError
 import cricbotlib as cb
 from discord.ext import commands
@@ -10,6 +11,22 @@ ids_con=[]
 curr_teams=[]
 plids=[]
 prctid=0
+
+class command_formats:
+    schedule = '`schedule [t20/odi/test]`'
+    team = '`team [match number in schedule]`'
+    partnership = '`partneship [match number in schedule]`'
+    partnership_current = '`pc [match number in schedule]`'
+    score = '`score [match number in schedule]`'
+    scorecard = '`scorecard [match number in schedule]`'
+    playercard = '`playercard [match number in schedule]`'
+    player_againstcard = '`againstcard [match number in schedule]`'
+    shots = '`shots [match number in schedule]`'
+    heatmap = '`heatmap [match number in schedule]`'
+    leaderboard = '`leaderboard [t20/odi/test] [bat/bowl/allrounder]`'
+    fallofwicket = '`fallofwicket [match number in schedule]`'
+    powerplay = '`powerplay [match number in schedule]`'
+    lastovers = 'lastovers [match number in schedule]'
 
 def string_padder(string):
     return string+('.'*(18-len(string)))
@@ -86,13 +103,12 @@ def team_embed(raw_data,team_id):
        embed.add_field(name=i[0], value=i[1]+i[2]+i[3], inline=False)
     return embed
 
-def leaderboard_embed(mf,dtype):
-    rawlb=cb.leaderboard(cb.fetch(cb.urlprov('', 2, '', 0, mf, dtype)))
-    embed = discord.Embed(title='Leaderboard {0} {1}'.format(mf,dtype), color=0x03f8fc)
-    embed.add_field(name='-',value='(Name) (Team Name) (Points) (Against)',inline=False)
+def leaderboard_embed(mf, dtype, count):
+    data=cb.fetch(cb.urlprov('', 2, '', 0, mf, dtype))
+    rawlb=cb.leaderboard(data, count)[-10:]
+    embed = discord.Embed(title='Leaderboard [{0}] [{1}]'.format(mf,dtype), color=0x03f8fc)
     for i in rawlb:
-        if len(embed) < 5900:
-            embed.add_field(name='{0} Team:{1} Point:{2}'.format(i[0],i[1],i[2]), value='+'+i[3], inline=False)
+        embed.add_field(name='{0}. {1} Team: {2} Point: {3}'.format(i[0],i[1],i[2],i[3]), value='+'+i[4], inline=False)
     return embed
 
 def shotsfig_embed_f(raw_data: dict, match_index):
@@ -287,7 +303,7 @@ def pshipc_embed(raw_data, inning_id):
     ), inline=True)
     return embed
 
-bot=commands.Bot(command_prefix='.')
+bot=commands.Bot(command_prefix=']')
 
 #events
 @bot.event
@@ -411,6 +427,19 @@ async def on_reaction_add(reaction, user):
             await message.delete()
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
+        if 'LB' in sess_args[0]:
+            curr_count = int(sess_args[3])
+            mf=sess_args[1]
+            dtype = sess_args[2]
+            if str(reaction) == arrows_emojis[1]:
+                curr_count+=10
+            if str(reaction) == arrows_emojis[0]:
+                curr_count-=10
+            if curr_count < 10:
+                curr_count = 10
+            e=leaderboard_embed(mf, dtype, curr_count)
+            e.add_field(name='_', value='sessionid:LB-{}-{}-{}'.format(mf,dtype, curr_count))
+            await message.edit(embed=e)
 
         if 'FOW' in sess_args[0]:
             m_id = ids_con[int(sess_args[1])]
@@ -546,6 +575,13 @@ async def on_reaction_add(reaction, user):
             e=pshipc_embed(raw_data, inning_index-1)
             await message.edit(embed=e)
 
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, CommandNotFound):
+        await ctx.send('`Unknown command` \n Please use right command to operate. `help` for commands details.')
+    if isinstance(error, CommandInvokeError):
+        return
+
 #commands
 @bot.command(aliases=['sh', 'sd'])
 async def schedule(ctx, shtype='live'):
@@ -575,7 +611,11 @@ async def team(ctx, match_index: int):
 
 @bot.command(aliases=['lb', 'ldb'])
 async def leaderboard(ctx, match_format='odi', dtype='bat'):
-    await ctx.send(embed=leaderboard_embed(match_format, dtype))
+    e=leaderboard_embed(match_format, dtype, 10)
+    e.add_field(name='_', value='sessionid:LB-{}-{}-{}'.format(match_format,dtype, str(10)))
+    message=await ctx.send(embed=e)
+    await message.add_reaction(arrows_emojis[0])
+    await message.add_reaction(arrows_emojis[1])
 
 @bot.command(aliases=['prship','ps','pship'])
 async def partnership(ctx, match_index: int):
@@ -673,6 +713,73 @@ async def partnership_current(ctx, match_index: int):
     message=await ctx.send(embed=pshipc_embed_f(match_index, raw_data))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
+
+#errors
+
+@schedule.error
+async def schedule_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.schedule))
+
+@score.error
+async def score_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.score))
+
+@team.error
+async def team_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.team))
+
+@leaderboard.error
+async def leaderboard_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.leaderboard))
+
+@partnership.error
+async def partnership_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.partnership))
+
+@shots.error
+async def shots_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.shots))
+
+@heatmap.error
+async def heatmap_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.heatmap))
+
+@fallofwicket.error
+async def fallofwicket_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.fallofwicket))
+
+@playercard.error
+async def playercard_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.playercard))
+
+@scorecard.error
+async def scorcecard_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.scorecard))
+
+@againstcard.error
+async def againstcard_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.player_againstcard))
+
+@lastovers.error
+async def lastovers_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.lastovers))
+
+@partnership_current.error
+async def partnership_current_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.partnership_current))
 
 auth_token = os.environ.get('EXPERIMENTAL_BOT_TOKEN')
 bot.run(auth_token)
