@@ -263,10 +263,10 @@ def shotsfig_bl(player_index:int, raw_data):
     buf.seek(0)
     return name, buf
         
-def leaderboard(raw_data: dict):
+def leaderboard(raw_data: dict, count:int):
     r, a = raw_data['bat-rank']['rank'], []
-    for i in r:a.append((i['Player-name'],
-    i['Country'], i['Points'], i['careerbest']))
+    for i in range(count):
+        a.append((r[i]['no'],r[i]['Player-name'],r[i]['Country'], r[i]['Points'], r[i]['careerbest']))
     return a
 
 def curr_partnership(raw_data, inning_id):
@@ -316,3 +316,5 @@ a = shotsfig(int(input()), fetch(
 #print(urlprov('tadped01312021199821', 1, 'batsman', 1, '', ''))
 #d=fetch('https://cricket.yahoo.net/sifeeds/cricket/live/json/mibc04092021199877_bowler_splits_1.json')
 #shotsfig_bl(3, d)
+d=fetch('https://cricket.yahoo.net/sifeeds/cricket/static/json/iccranking-test-bowl.json')
+leaderboard(d, 5)
