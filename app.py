@@ -303,7 +303,7 @@ def pshipc_embed(raw_data, inning_id):
     ), inline=True)
     return embed
 
-bot=commands.Bot(command_prefix=']')
+bot=commands.Bot(command_prefix='.')
 
 #events
 @bot.event
