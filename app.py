@@ -36,6 +36,43 @@ def null_normalizer(arg):
     else: return arg
 
 #embedders
+def invite_embed():
+    embed = discord.Embed(title='cricbot Invite',
+                          url='https://discord.com/api/oauth2/authorize?client_id=830809161599025202&permissions=10304&scope=bot',
+                          description='Invite cricbot on your server.')
+    return embed
+
+def source_embed():
+    source_code = 'https://github.com/0x0is1/project-redesigned-adventure'
+    embed = discord.Embed(title='cricbot Source code',
+                          url=source_code,
+                          description='Visit cricbot source code.')
+    return embed
+
+def help_embed():
+    embed = discord.Embed(title="Cricbot-2.0", color=0x03f8fc)
+    embed.add_field(
+    name="Description:", value="Get real time score and other infos related to cricket on you server instantly.", inline=False)
+    embed.add_field(name="Commands:\n", value="_",inline=False)
+    embed.add_field(name="Schedule:", value=command_formats.score, inline=False)
+    embed.add_field(name="Score:", value=command_formats.schedule, inline=False)
+    embed.add_field(name="Scorecard: ", value=command_formats.scorecard, inline=False)
+    embed.add_field(name="Heatmap(Pitch): ", value=command_formats.heatmap, inline=False)
+    embed.add_field(name="Shots: ", value=command_formats.shots, inline=False)
+    embed.add_field(name="Playercard: ", value=command_formats.playercard, inline=False)
+    embed.add_field(name="Againstcard: ", value=command_formats.player_againstcard, inline=False)
+    embed.add_field(name="Partnership: ", value=command_formats.partnership, inline=False)
+    embed.add_field(name="Lastover: ", value=command_formats.lastovers, inline=False)
+    embed.add_field(name="Team: ", value=command_formats.team, inline=False)
+    embed.add_field(name="Fallofwicket: ", value=command_formats.fallofwicket, inline=False)
+    embed.add_field(name="Leaderboard: ", value=command_formats.leaderboard, inline=False)
+    embed.add_field(name="Powerplay: ", value=command_formats.powerplay, inline=False)
+    embed.add_field(name="Current partnership: ", value=command_formats.partnership_current, inline=False)
+    embed.add_field(name="Invite: ", value="`invite`", inline=False)
+    embed.add_field(name="Source: ", value="`source`", inline=False)
+    embed.add_field(name="Credits: ", value="`credits`", inline=False)
+    return embed
+
 def schedule_embed(limit, raw_data):
     schedule = cb.schedule(limit,raw_data)[-5:]
     embed = discord.Embed(title='Schedule', color=0x03f8fc)
@@ -304,6 +341,7 @@ def pshipc_embed(raw_data, inning_id):
     return embed
 
 bot=commands.Bot(command_prefix='.')
+bot.remove_command('help')
 
 #events
 @bot.event
@@ -713,6 +751,32 @@ async def partnership_current(ctx, match_index: int):
     message=await ctx.send(embed=pshipc_embed_f(match_index, raw_data))
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
+
+@bot.command(aliases=['hlp', 'h'])
+async def help(ctx):
+    await ctx.send(embed=help_embed())
+
+@bot.command(aliases=['inv', 'invit'])
+async def invite(ctx):
+    await ctx.send(embed=invite_embed())
+
+@bot.command(aliases=['jn'])
+async def join(ctx):
+    link='https://discord.gg/PyzaTzs2cF'
+    await ctx.send('Join cricbot development server for any help or feedback/bug report.'+link)
+
+@bot.command(aliases=['source', 'source-code'])
+async def code(ctx):
+    await ctx.send(embed=source_embed())
+
+@bot.command(aliases=['credit', 'cred', 'creds'])
+async def credits(ctx):
+    embed = discord.Embed(title="Cricbot-2.0 : Your own cricket bot", color=0x03f8fc)
+    embed.add_field(name='API Disclaim: ', value="I don't own cricbot API. it is owned by Yahoo! cricket. This is an unofficial use of this API which is not public.", inline=False)    
+    embed.add_field(name='Developed by:', value='0x0is1', inline=False)
+    await ctx.send(embed=embed)
+
+
 
 #errors
 
