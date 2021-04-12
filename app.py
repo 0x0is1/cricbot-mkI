@@ -351,9 +351,10 @@ async def on_ready():
 
 @bot.event
 async def on_reaction_add(reaction, user):
-    if not user.bot:
-        global ids_con, psid, botid
-        message = reaction.message
+    global botid
+    message = reaction.message
+    if not user.bot and message.author.id==botid:
+        global ids_con
         channel = message.channel
         msg=await channel.fetch_message(message.id)
         try:
@@ -420,8 +421,8 @@ async def on_reaction_add(reaction, user):
                 nm=await channel.send(file=file, content=content)
             except IndexError: pass
             except JSONDecodeError: 
-                nm=await channel.send(content=content)
                 content+='\nN/A'
+                nm=await channel.send(content=content)
             await message.delete()
             await nm.add_reaction(arrows_emojis[3])
             await nm.add_reaction(arrows_emojis[2])
@@ -764,7 +765,7 @@ async def invite(ctx):
 @bot.command(aliases=['jn'])
 async def join(ctx):
     link='https://discord.gg/PyzaTzs2cF'
-    await ctx.send('Join cricbot development server for any help or feedback/bug report.'+link)
+    await ctx.send('Join cricbot development server for any help or feedback/bug report.\n'+link)
 
 @bot.command(aliases=['source', 'source-code'])
 async def code(ctx):
@@ -776,8 +777,6 @@ async def credits(ctx):
     embed.add_field(name='API Disclaim: ', value="I don't own cricbot API. it is owned by Yahoo! cricket. This is an unofficial use of this API which is not public.", inline=False)    
     embed.add_field(name='Developed by:', value='0x0is1', inline=False)
     await ctx.send(embed=embed)
-
-
 
 #errors
 
