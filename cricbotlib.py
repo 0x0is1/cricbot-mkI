@@ -244,7 +244,7 @@ def shotsfig_bl(player_index:int, raw_data):
     pseudo_originX, pseudo_originY=75,20
     ball_len, ball_wid = 18,10
     im=Image.open('./res/pitchmap.png')
-    legend_image =Image.open("./res/legend-1.png")
+    legend_image =Image.open("./res/legend-2.png")
     d = ImageDraw.Draw(im)
     #75,20,250,310
     for i in pitch:
