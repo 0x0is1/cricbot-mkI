@@ -54,8 +54,8 @@ def help_embed():
     embed.add_field(
     name="Description:", value="Get real time score and other infos related to cricket on you server instantly.", inline=False)
     embed.add_field(name="Commands:\n", value="_",inline=False)
-    embed.add_field(name="Schedule:", value=command_formats.score, inline=False)
-    embed.add_field(name="Score:", value=command_formats.schedule, inline=False)
+    embed.add_field(name="Schedule:", value=command_formats.schedule, inline=False)
+    embed.add_field(name="Score:", value=command_formats.score, inline=False)
     embed.add_field(name="Scorecard: ", value=command_formats.scorecard, inline=False)
     embed.add_field(name="Heatmap(Pitch): ", value=command_formats.heatmap, inline=False)
     embed.add_field(name="Shots: ", value=command_formats.shots, inline=False)
