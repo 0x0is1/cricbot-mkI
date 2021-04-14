@@ -1,6 +1,5 @@
 import discord,os
 from discord.ext.commands.errors import CommandInvokeError, CommandNotFound
-from numpy import int0
 from simplejson.errors import JSONDecodeError
 import cricbotlib as cb
 from discord.ext import commands
@@ -8,13 +7,13 @@ from discord.ext import commands
 num_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '➡️']
 botid = os.environ.get('BOT_ID') #798505180076965891
 arrows_emojis=['⬆️', '⬇️', '➡️', '⬅️', '🔄']
-ids_con=[]
+ids_con={}
 curr_teams=[]
 plids=[]
 prctid=0
 
 class command_formats:
-    schedule = '`schedule [t20/odi/test]`'
+    schedule = '`schedule [live/upcoming/ended]`'
     team = '`team [match number in schedule]`'
     partnership = '`partneship [match number in schedule]`'
     partnership_current = '`pc [match number in schedule]`'
@@ -75,12 +74,12 @@ def help_embed():
     embed.add_field(name="Join: ", value="Join development server `join`", )
     return embed
 
-def schedule_embed(limit, raw_data):
+def schedule_embed(limit, raw_data, channel_id):
     schedule = cb.schedule(limit,raw_data)[-5:]
     embed = discord.Embed(title='Schedule', color=0x03f8fc)
     global ids_con
-    ids_con.clear()
-    ids_con.append('tadped01312021199821')
+    a=[]
+    a.append('tadped01312021199821')
     for i in range(limit):
         try:
             k=schedule[i]
@@ -88,7 +87,8 @@ def schedule_embed(limit, raw_data):
             break
         embed.add_field(name='{0}. {1}'.format(str(i+1),k[4]), value='{0} vs {1}\n**Date**: {2}  |  **Venue**: {3}\n*{4}*'.format(
             k[0], k[1], k[5], k[8], k[6]), inline=False)
-        ids_con.append(k[9])
+        a.append(k[9])
+    ids_con[channel_id] = a
     return embed
 
 def score_embed(raw_data, match_index):
@@ -226,18 +226,18 @@ def playercard_embed_f(raw_data, match_index):
 def playercard_embed(raw_data, player_id, team_id):
     data_bt = cb.playercard(team_id, player_id, raw_data, 0)
     data_bl = cb.playercard(team_id, player_id, raw_data, 1)    
-    embed = discord.Embed(title='Player Info')
+    embed = discord.Embed(title='Player Info', color=0x03f8fc)
     embed.add_field(name='Name:', value=data_bt[0], inline=True)
     embed.add_field(name='Total Matches:', value=data_bt[1], inline=True)
     embed.add_field(
-        name='BATTING', value='+=============++=============+', inline=False)
+        name='BATTING', value='+=============+', inline=False)
     for i in range(0, len(data_bt[2])):
         val = data_bt[3][i]
         if val == '':
             val='NaN'
         embed.add_field(name=data_bt[2][i], value=val, inline=True)
     embed.add_field(
-        name='BOWLING', value='+=============++=============+', inline=False)
+        name='BOWLING', value='+=============+', inline=False)
     for i in range(0, len(data_bl[2])):
         val = data_bl[3][i]
         if val == '':
@@ -354,6 +354,7 @@ async def on_reaction_add(reaction, user):
     if not user.bot:
         global ids_con, botid
         channel = message.channel
+        channel_id = channel.id
         msg=await channel.fetch_message(message.id)
         try:
             session_id=str(msg.embeds[0].fields[-1].value).split('sessionid:')[1].split('`')[0]
@@ -373,23 +374,23 @@ async def on_reaction_add(reaction, user):
             if curr_count < 5:
                 curr_count=5
             url = 'https://cricket.yahoo.net/sifeeds/multisport/?methodtype=3&client=24&sport=1&league=0&timezone=0530&language=en&gamestate='+str(cshtype)
-            e=schedule_embed(curr_count, cb.fetch(url))            
+            e=schedule_embed(curr_count, cb.fetch(url), channel_id)            
             e.add_field(name='_', value='sessionid:SCD-{0}-{1}'.format(str(cshtype), str(curr_count)))
             await message.edit(embed=e)
 
         if 'TEF' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             e=team_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')),sess_args[num_emojis.index(str(reaction))+1])
             e.add_field(name='_', value='`sessionid:TEF-{0}-{1}-{2}`'.format(sess_args[1],sess_args[2],sess_args[3]), inline=True)
             await message.edit(embed=e)
         if 'PEF' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             await channel.send(file=partnership_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction))))
         if 'MSC' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             await message.edit(embed=score_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), sess_args[1]))
         if 'SFG' == sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             inning_id=num_emojis.index(str(reaction))
             url=cb.urlprov(m_id, 1, 'batsman', inning_id, '', '')
             print(url)
@@ -406,7 +407,7 @@ async def on_reaction_add(reaction, user):
 
         if 'SFGL' == sess_args[0]:
             content=''
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             inning_id = int(sess_args[3])
             curr_plindex= int(sess_args[2])
             url=cb.urlprov(m_id, 1, 'batsman', inning_id, '', '')
@@ -437,7 +438,7 @@ async def on_reaction_add(reaction, user):
         if 'HFG' == sess_args[0]:
             await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
             await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             url=cb.urlprov(m_id, 1, 'bowler', num_emojis.index(str(reaction)), '', '')
             data=cb.fetch(url)
             f=cb.shotsfig_bl(int(sess_args[2]), data)
@@ -450,7 +451,7 @@ async def on_reaction_add(reaction, user):
             await nm.add_reaction(arrows_emojis[2])
 
         if 'HFGL' == sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             url=cb.urlprov(m_id, 1, 'bowler', 1, '', '')
             data = cb.fetch(url)
             content=''
@@ -489,10 +490,10 @@ async def on_reaction_add(reaction, user):
             await message.edit(embed=e)
 
         if 'FOW' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             await channel.send(file=fow_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction))))
         if 'PSP' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             e=powerplay_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction)))
             e.add_field(name='_', value='`sessionid:PSP-{0}-{1}-{2}`'.format(sess_args[1],sess_args[2],sess_args[3]), inline=True)
             await message.edit(embed=e)
@@ -501,7 +502,7 @@ async def on_reaction_add(reaction, user):
             await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
             global plids, prctid
             plids.clear()
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
             teams = list(data['Teams'])
             team_id = num_emojis.index(str(reaction))
@@ -519,7 +520,7 @@ async def on_reaction_add(reaction, user):
         # '=' replace here '-' to avoid this bug.
         sess_args=session_id.split('=')
         if 'PRCI' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
             teams = list(data['Teams'])
             team_id = prctid
@@ -538,7 +539,7 @@ async def on_reaction_add(reaction, user):
         #resetting splition back to normal '-'
         sess_args = session_id.split('-')
         if 'SCR' == sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             url = cb.urlprov(m_id, 0, '', 0, '', '')
             raw_data = cb.fetch(url)
             in_id = num_emojis.index(str(reaction))
@@ -548,21 +549,21 @@ async def on_reaction_add(reaction, user):
             await sent_message.add_reaction(arrows_emojis[4])
 
         if 'SCRR' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             url = cb.urlprov(m_id, 0, '', 0, '', '')
             raw_data = cb.fetch(url)
             string=scorecard_embed(raw_data, int(sess_args[4])-1)
             string = string + 'sessionid:SCRR-{0}-{1}-{2}-{3}\n```'.format(sess_args[1],sess_args[2],sess_args[3], sess_args[4])
             await message.edit(content=string)
         if 'PAC' == sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
             e = player_againstcard_embed_f(data, sess_args[1], 1)
             e.add_field(name='_', value='`sessionid:PACF-{0}-{1}-{2}`'.format(sess_args[1], num_emojis.index(str(reaction)), str(0)), inline=True)
             await message.edit(embed=e)
             
         if 'PACF' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             inning_index = int(sess_args[2])
             a = ['batsman', 'bowler']
             b = [True, False]
@@ -580,7 +581,7 @@ async def on_reaction_add(reaction, user):
             await nm.add_reaction(arrows_emojis[2])
 
         if 'PACR' in sess_args[0]:
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             inning_index = int(sess_args[2])
             a = ['batsman', 'bowler']
             b = [True, False]
@@ -605,7 +606,7 @@ async def on_reaction_add(reaction, user):
         if 'LO' in sess_args[0]:
             await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
             await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             inning_index = num_emojis.index(str(reaction))
             url = cb.urlprov(m_id, 0, '', inning_index, '', '')
             raw_data = cb.fetch(url)
@@ -615,7 +616,7 @@ async def on_reaction_add(reaction, user):
         if 'PPC' in sess_args[0]:
             await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
             await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
-            m_id = ids_con[int(sess_args[1])]
+            m_id = ids_con[channel_id][int(sess_args[1])]
             inning_index = num_emojis.index(str(reaction))
             url = cb.urlprov(m_id, 0, '', inning_index, '', '')
             raw_data = cb.fetch(url)
@@ -632,9 +633,10 @@ async def on_command_error(ctx, error):
 #commands
 @bot.command(aliases=['sh', 'sd'])
 async def schedule(ctx, shtype='live'):
+    channel_id = ctx.message.channel.id
     cshtype = {'ended': 4, 'upcoming': 2, 'live': 1, 'all': 3}[shtype]
     url = 'https://cricket.yahoo.net/sifeeds/multisport/?methodtype=3&client=24&sport=1&league=0&timezone=0530&language=en&gamestate='+str(cshtype)
-    e=schedule_embed(5, cb.fetch(url))
+    e=schedule_embed(5, cb.fetch(url), channel_id)
     e.add_field(name='_', value='sessionid:SCD-{0}-{1}'.format(str(cshtype), str(5)))
     message=await ctx.send(embed=e)
     await message.add_reaction(arrows_emojis[0])
@@ -642,15 +644,17 @@ async def schedule(ctx, shtype='live'):
 
 @bot.command(aliases=['sc', 'ms', 'miniscore'])
 async def score(ctx, match_index: int):
+    channel_id = ctx.message.channel.id
     global ids_con
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     msg=await ctx.send(embed=score_embed(cb.fetch(cb.urlprov(m_id,0,'',0,'','')), match_index))
     await msg.add_reaction('🔄')
 
 @bot.command(aliases=['tm'])
 async def team(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con,curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     raw_data=cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
     message=await ctx.send(embed=team_embed_f(raw_data,match_index))
     await message.add_reaction(num_emojis[1])
@@ -666,8 +670,9 @@ async def leaderboard(ctx, match_format='odi', dtype='bat'):
 
 @bot.command(aliases=['prship','ps','pship'])
 async def partnership(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con,curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     raw_data=cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
     message=await ctx.send(embed=partnership_embed_f(raw_data,match_index))
     await message.add_reaction(num_emojis[1])
@@ -675,8 +680,9 @@ async def partnership(ctx, match_index: int):
 
 @bot.command(aliases=['shot', 'st', 'sts'])
 async def shots(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
     e=shotsfig_embed_f(raw_data, match_index)
     e.add_field(name='_', value='sessionid:SFG-{0}-{1}'.format(match_index, str(0)), inline=True)
@@ -686,8 +692,9 @@ async def shots(ctx, match_index: int):
 
 @bot.command(aliases=['hmp', 'heat', 'pitch'])
 async def heatmap(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
     message = await ctx.send(embed=heatfig_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
@@ -696,8 +703,9 @@ async def heatmap(ctx, match_index: int):
 
 @bot.command(aliases=['fow', 'fall', 'wicketfall'])
 async def fallofwicket(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
     message = await ctx.send(embed=fow_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
@@ -705,8 +713,9 @@ async def fallofwicket(ctx, match_index: int):
 
 @bot.command(aliases=['pow', 'pp', 'powerp', 'power'])
 async def powerplay(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
     message = await ctx.send(embed=powerplay_embed_f(raw_data, match_index))
     await message.add_reaction(num_emojis[1])
@@ -714,8 +723,9 @@ async def powerplay(ctx, match_index: int):
 
 @bot.command(aliases=['trumpcard', 'prc', 'player-info'])
 async def playercard(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     url = cb.urlprov(m_id, 0, '', 0, '', '')
     raw_data = cb.fetch(url)
     message = await ctx.send(embed=playercard_embed_f(raw_data, match_index))
@@ -724,8 +734,9 @@ async def playercard(ctx, match_index: int):
 
 @bot.command(aliases=['scr', 'scoreboard', 'sbd'])
 async def scorecard(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     url = cb.urlprov(m_id, 0, '', 0, '', '')
     raw_data = cb.fetch(url)
     message=await ctx.send(embed=scorecard_embed_f(raw_data, match_index))
@@ -734,8 +745,9 @@ async def scorecard(ctx, match_index: int):
 
 @bot.command(aliases=['agcard', 'acard', 'ac'])
 async def againstcard(ctx, match_index: int):
+    channel_id = ctx.message.channel.id    
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     url = cb.urlprov(m_id, 0, '', 0, '', '')
     raw_data = cb.fetch(url)
     message=await ctx.send(embed=player_againstcard_embed_f(raw_data, match_index, 0))
@@ -744,8 +756,9 @@ async def againstcard(ctx, match_index: int):
 
 @bot.command(aliases=['lsover', 'lo'])
 async def lastovers(ctx, match_index: int):
+    channel_id = ctx.message.channel.id
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     url = cb.urlprov(m_id, 0, '', 0, '', '')
     raw_data = cb.fetch(url)
     message=await ctx.send(embed=lastover_embed_f(raw_data, match_index))
@@ -754,8 +767,9 @@ async def lastovers(ctx, match_index: int):
 
 @bot.command(aliases=['pc', 'pshipc', 'pshipcurr'])
 async def partnership_current(ctx, match_index: int):
+    channel_id = ctx.message.channel.id
     global ids_con, curr_teams
-    m_id = ids_con[match_index]
+    m_id = ids_con[channel_id][match_index]
     url = cb.urlprov(m_id, 0, '', 0, '', '')
     print(url)
     raw_data = cb.fetch(url)
