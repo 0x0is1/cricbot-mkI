@@ -26,8 +26,9 @@ class command_formats:
     leaderboard = '`leaderboard [t20/odi/test] [bat/bowl/allrounder]`'
     fallofwicket = '`fallofwicket [match number in schedule]`'
     powerplay = '`powerplay [match number in schedule]`'
-    lastovers = 'lastovers [match number in schedule]'
-
+    lastovers = '`lastovers [match number in schedule]`'
+    fantasy_insight = '`fi [match number in schedule]`'
+    
 def string_padder(string):
     return string+('.'*(18-len(string)))
 
@@ -68,6 +69,7 @@ def help_embed():
     embed.add_field(name="Leaderboard: ", value=command_formats.leaderboard, inline=False)
     embed.add_field(name="Powerplay: ", value=command_formats.powerplay, inline=False)
     embed.add_field(name="Current partnership: ", value=command_formats.partnership_current, inline=False)
+    embed.add_field(name="Fantasy Insight: ", value=command_formats.fantasy_insight, inline=False)
     embed.add_field(name="Invite: ", value="`invite`")
     embed.add_field(name="Source: ", value="`source`")
     embed.add_field(name="Credits: ", value="`credits`")
@@ -150,7 +152,7 @@ def leaderboard_embed(mf, dtype, count):
         embed.add_field(name='{0}. {1} Team: {2} Point: {3}'.format(i[0],i[1],i[2],i[3]), value='+'+i[4], inline=False)
     return embed
 
-def shotsfig_embed_f(raw_data: dict, match_index):
+def shotsfig_embed_f(raw_data: dict):
     s = cb.miniscore(0, raw_data)
     teams = raw_data['Teams']
     team_ids = list(teams)
@@ -339,6 +341,13 @@ def pshipc_embed(raw_data, inning_id):
         data[0], data[1], data[2], data[3], data[4],data[5], data[6], data[7] 
     ), inline=True)
     return embed
+
+def fantasy_insight_embed(raw_data, fantasy_type):
+    fe = {'d11':'Dream11', 'my11':'MyTeam11'}
+    data= cb.fantasy_insight(raw_data, fantasy_type)
+    string ='**{} Fantasy Prediction**'.format(fe[fantasy_type])
+    file = discord.File(fp=data, filename='img{}.png'.format(fantasy_type))
+    return file, string
 
 bot=commands.Bot(command_prefix='.')
 bot.remove_command('help')
@@ -623,6 +632,20 @@ async def on_reaction_add(reaction, user):
             e=pshipc_embed(raw_data, inning_index-1)
             await message.edit(embed=e)
 
+        if 'FI' in sess_args[0]:
+            d={1:'d11', 2:'my11'}
+            m_id = ids_con[channel_id][int(sess_args[1])]
+            ftype = d[num_emojis.index(str(reaction))]
+            url='https://cricket.yahoo.net/sifeeds/cricket/live/json/{}_fantasy_picks.json'.format(m_id)
+            data= cb.fetch(url)
+            c=fantasy_insight_embed(data, ftype)
+            content=c[1]
+            content+='\nsessionid:FI-{0}-{1}'.format(str(sess_args[1]), ftype)
+            await message.delete()
+            msg=await channel.send(file=c[0], content=content)
+            await msg.add_reaction(num_emojis[1])
+            await msg.add_reaction(num_emojis[2])
+    
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound):
@@ -684,7 +707,7 @@ async def shots(ctx, match_index: int):
     global ids_con, curr_teams
     m_id = ids_con[channel_id][match_index]
     raw_data = cb.fetch(cb.urlprov(m_id, 0, '', 0, '', ''))
-    e=shotsfig_embed_f(raw_data, match_index)
+    e=shotsfig_embed_f(raw_data)
     e.add_field(name='_', value='sessionid:SFG-{0}-{1}'.format(match_index, str(0)), inline=True)
     message = await ctx.send(embed=e)
     await message.add_reaction(num_emojis[1])
@@ -771,7 +794,6 @@ async def partnership_current(ctx, match_index: int):
     global ids_con, curr_teams
     m_id = ids_con[channel_id][match_index]
     url = cb.urlprov(m_id, 0, '', 0, '', '')
-    print(url)
     raw_data = cb.fetch(url)
     message=await ctx.send(embed=pshipc_embed_f(match_index, raw_data))
     await message.add_reaction(num_emojis[1])
@@ -801,6 +823,19 @@ async def credits(ctx):
     embed.add_field(name='Developed by:', value='0x0is1', inline=False)
     await ctx.send(embed=embed)
 
+@bot.command(aliases=['fantasy', 'insight', 'fi', 'finsight', 'dream11'])
+async def fantasy_insight(ctx, match_index: int):
+    channel_id = ctx.message.channel.id
+    global ids_con
+    m_id = ids_con[channel_id][match_index]
+    url='https://cricket.yahoo.net/sifeeds/cricket/live/json/{}_fantasy_picks.json'.format(m_id)
+    raw_data = cb.fetch(url)
+    c=fantasy_insight_embed(raw_data, 'd11')
+    content=c[1]
+    content+='\nsessionid:FI-{0}-{1}'.format(str(match_index), 'd11')
+    message=await ctx.message.channel.send(file=c[0], content=content)
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
 
 
 #errors
@@ -867,6 +902,11 @@ async def lastovers_error(ctx, error):
 
 @partnership_current.error
 async def partnership_current_error(ctx, error):
+    print(error)
+    await ctx.send('Invalid command! use {}'.format(command_formats.partnership_current))
+
+@fantasy_insight.error
+async def fantasy_insight_error(ctx, error):
     print(error)
     await ctx.send('Invalid command! use {}'.format(command_formats.partnership_current))
 
