@@ -2,7 +2,7 @@ import requests
 import io
 import matplotlib.pyplot as mp
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from math import cos, sin, radians
 
 def urlprov(ids: str, urlindex: int, ptype: str, inning_index: int, mformat: str, dtype: str):
@@ -289,3 +289,46 @@ def curr_partnership(raw_data, inning_id):
         pshipc['Batsmen'][1]['Runs'],
         pshipc['Batsmen'][1]['Balls'],
     )
+
+def stamp_generator(player_name, team_name):
+    im = Image.open("./res/stamp.png")
+    font_path='./res/DejaVuSansCondensed-Bold.ttf'
+    d=ImageDraw.Draw(im)
+    d.text((26,12), player_name, font=ImageFont.truetype(font_path, 12))
+    d.text((50,37), team_name, font=ImageFont.truetype(font_path, 12))
+    return im
+
+def fi_image_generator(raw_data, fantasy_type):
+    store={1:[], 2:[], 3:[], 4:[]}
+    ic={1:'BAT', 2:'BOWL', 3:'AR', 4:'WK'}
+    cap, vice_cap='', ''
+    for i in raw_data['players']:
+        if i['is_'+fantasy_type]:
+            if i['skill_id'] in (1, 2, 3, 4) :
+                if i['is_'+fantasy_type+'_captain']:cap=' [C] '
+                else:cap=''
+                if i['is_'+fantasy_type+'_vice_captain']:vice_cap=' [VC] '
+                else:vice_cap=''
+                im=stamp_generator(i['player_name'], str(i['team_short_name']+' ['+ic[i['skill_id']]+']'+cap+vice_cap).upper())
+                con=requests.get('https://cricket.yahoo.net/static-assets/players/min/{}.png?v=1.22&w=50'.format(str(i['player_id']))).content
+                buf= io.BytesIO(con)
+                icon=Image.open(buf)
+                store[i['skill_id']].append((im, icon))
+    return store
+
+def fantasy_insight(raw_data, fantasy_type):
+    base=Image.open("./res/fantasy-field.jpg")
+    coords11 = [(220, 80), (40, 120), (390, 120), (90, 240), (330, 240), (40, 360), (220, 400), (390, 360), (40, 500), (220, 550), (390, 500)]
+    it=0
+    ims=fi_image_generator(raw_data, fantasy_type)
+    for j in (4,1,3,2):
+        for i in ims[j]:
+            x=coords11[it][0]
+            y=coords11[it][1]
+            base.paste(i[0], (x, y))
+            base.paste(i[1], (x+50, y-50))
+            it+=1
+    buf = io.BytesIO()
+    base.save(buf, format='png')
+    buf.seek(0)
+    return buf
