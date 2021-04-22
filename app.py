@@ -2,7 +2,7 @@ import discord,os
 from discord.ext.commands.errors import CommandInvokeError, CommandNotFound
 from simplejson.errors import JSONDecodeError
 import cricbotlib as cb
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 num_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '➡️']
 botid = os.environ.get('BOT_ID') #798505180076965891
@@ -11,6 +11,7 @@ ids_con={}
 curr_teams=[]
 plids=[]
 prctid=0
+refresh_time=7
 
 class command_formats:
     schedule = '`schedule [live/upcoming/ended]`'
@@ -131,10 +132,12 @@ def partnership_embed_f(raw_data, match_index):
     return embed
 
 def partnership_embed(raw_data, inning_id):
+    embed= discord.Embed(title='Partnership')
     f=cb.partnership(int(inning_id)-1, raw_data)
     file = discord.File(fp=f, filename='img{}.png'.format(inning_id))
     f.close()
-    return file
+    embed.set_image(url='attachment://img{}.png'.format(inning_id))
+    return embed, file
 
 def team_embed(raw_data,team_id):
     team_name = raw_data['Teams'][team_id]['Name_Full']
@@ -352,9 +355,31 @@ def fantasy_insight_embed(raw_data, fantasy_type):
 bot=commands.Bot(command_prefix='.')
 bot.remove_command('help')
 
+@tasks.loop(seconds=refresh_time)
+async def status_changer():
+    cshtype = 1
+    url = 'https://cricket.yahoo.net/sifeeds/multisport/?methodtype=3&client=24&sport=1&league=0&timezone=0530&language=en&gamestate='+str(cshtype)
+    sh = cb.schedule(40, cb.fetch(url))
+    t,preid = '', ''
+    for i in sh:
+        if 'Indian Premier League' in i[4]:
+            preid = i[9]
+            break
+    url = 'https://cricket.yahoo.net/sifeeds/cricket/live/json/' + preid + '.json'
+    data = cb.fetch(url)
+    try: 
+        s=cb.miniscore(1,data)
+    except Exception:
+        s = cb.miniscore(0, data)
+    score = '{0}-{1} ({2})'.format(s[4], s[5], s[6])
+    t = '{0} vs {1}'.format(s[7], s[8])
+    string = '{0} | {1}'.format(t, score)
+    await bot.change_presence(activity=discord.Game(name=string))
+
 #events
 @bot.event
 async def on_ready():
+    status_changer.start()
     print('bot is online.')
 
 @bot.event
@@ -393,8 +418,12 @@ async def on_reaction_add(reaction, user):
             e.add_field(name='_', value='`sessionid:TEF-{0}-{1}-{2}`'.format(sess_args[1],sess_args[2],sess_args[3]), inline=True)
             await message.edit(embed=e)
         if 'PEF' in sess_args[0]:
+            inning_index=num_emojis.index(str(reaction))
             m_id = ids_con[channel_id][int(sess_args[1])]
-            await channel.send(file=partnership_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), num_emojis.index(str(reaction))))
+            url=cb.urlprov(m_id, 0, '', 0, '', '')
+            d=partnership_embed(cb.fetch(url), inning_index)
+            await channel.send(embed=d[0], file=d[1])
+        
         if 'MSC' in sess_args[0]:
             m_id = ids_con[channel_id][int(sess_args[1])]
             await message.edit(embed=score_embed(cb.fetch(cb.urlprov(m_id, 0, '', 0, '', '')), sess_args[1]))
