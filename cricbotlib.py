@@ -86,34 +86,35 @@ def scorecard(inning_id: int, data: dict):
     blteam_id = inning['Bowlingteam']
     btplayer = data['Teams'][btteam_id]['Players']
     blplayer = data['Teams'][blteam_id]['Players']
+    btteam_name = data['Teams'][btteam_id]['Name_Short']
+    blteam_name = data['Teams'][blteam_id]['Name_Short']
+
     for i in batsmen:
         name=(btplayer[i['Batsman']]['Name_Full']).split(' ')[-1]
-        if i['DismissalId'] == 'no':
+        if i['Howout'] == 'Batting':
             name += '*'
         btsb.append((name,i['Runs'], i['Balls'], i['Fours'],
                      i['Sixes'], i['Dots'], i['Strikerate']))
     for i in bowler:
         blsb.append(((blplayer[i['Bowler']]['Name_Full']).split(' ')[-1], i['Runs'],i['Overs'],
                      i['Maidens'], i['Wickets'], i['Noballs'], i['Wides'], i['Dots'], i['Economyrate']))
-    return btsb, blsb
+    return btsb, blsb, btteam_name, blteam_name
 
 
 def team_pl(team_id: str, raw_data: dict):
     players, pls = raw_data['Teams'][team_id]['Players'], []
     for i in players:
-        if players[str(i)]['Confirm_XI']:
-            p = ' *(playing)*'
         try:
             players[str(i)]['Iscaptain']
-            c = ' *(captain)*'
+            c = ' (c)'
         except KeyError:
             c = ''
         try:
             players[str(i)]['Iskeeper']
-            k = ' *(keeper)*'
+            k = ' (k)'
         except KeyError:
             k = ''
-        pls.append((players[str(i)]['Name_Full'], p, c, k))
+        pls.append((players[str(i)]['Name_Full'], c, k))
     return pls
 
 
