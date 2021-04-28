@@ -405,7 +405,7 @@ async def on_ready():
 @bot.event
 async def on_reaction_add(reaction, user):
     message = reaction.message
-    if not user.bot:
+    if not user.bot and message.author == bot.user:
         global ids_con, botid
         channel = message.channel
         channel_id = channel.id
