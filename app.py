@@ -412,8 +412,8 @@ async def on_reaction_add(reaction, user):
         msg=await channel.fetch_message(message.id)
         try:
             session_id=str(msg.embeds[0].footer.text).split('sessionid:')[1].split('`')[0]
+            await message.remove_reaction(reaction, user)
         except IndexError:pass
-        await message.remove_reaction(reaction, user)
         sess_args=session_id.split('-')
         if 'SCD' in sess_args[0]:
             cshtype = int(sess_args[1])
