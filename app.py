@@ -600,7 +600,7 @@ async def on_reaction_add(reaction, user):
             try:
                 in_id = num_emojis.index(str(reaction))
             except ValueError:
-                in_id = sess_args[4]
+                in_id = sess_args[2]
             sessid='sessionid:SCR-{0}-{1}'.format(sess_args[1], in_id)
             embed=scorecard_embed(raw_data, int(in_id)-1)
             embed.set_footer(text=sessid)
