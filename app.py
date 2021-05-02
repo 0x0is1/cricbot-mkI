@@ -373,13 +373,13 @@ def fantasy_insight_embed(raw_data, fantasy_type):
 
 def state_selector():
     embed= discord.Embed(title='Election May 2021', color=0x03f8fc)
-    embed.add_field(name='React to Select state:', value='1. Assam\n2. Kerala\n3.Tamil Nadu\n4. Pudducherry \n5. West Bengal', inline=False)
+    embed.add_field(name='React to Select State:', value='1. Assam\n2. Kerala\n3. Pudducherry\n4. Tamil Nadu\n5. West Bengal', inline=False)
     embed.set_footer(text='sessionid:ESEL')
     return embed
 
 def election_embed(state_index):
     string=''
-    states=['Assam', 'Kerala', 'Tamil Nadu', 'Pudducherry', 'West Bengal']
+    states=['Assam', 'Kerala', 'Pudducherry', 'Tamil Nadu', 'West Bengal']
     embed = discord.Embed(title='{0} Election Result May 2021'.format(states[state_index-1]), color=0x03f8fc)
     data = cb.election_result(state_index)
     for i in data:
