@@ -1,4 +1,5 @@
 import requests
+from bs4 import BeautifulSoup as bs
 import io
 import matplotlib.pyplot as mp
 import numpy as np
@@ -333,3 +334,27 @@ def fantasy_insight(raw_data, fantasy_type):
     base.save(buf, format='png')
     buf.seek(0)
     return buf
+
+def name_parser(string):
+    t=string.split(' ')
+    name=''
+    for i in t:
+        try:
+            name+=i[0]
+        except Exception:
+            pass
+    if name=='CPoI(':
+        name='CPI(M)'
+    return name
+
+def election_result(state_index):
+    result = []
+    states_codes = {1: 'S03', 2: 'S11', 3: 'U07', 4: 'S22', 5: 'S25'}
+    url = 'https://results.eci.gov.in/Result2021/partywiseresult-{0}.htm?st={0}'.format(states_codes[state_index])
+    response = requests.get(url)
+    soup = bs(response.content, 'html.parser')
+    t=soup.findAll('tr', {'style': 'font-size:12px;'})
+    for i in t:
+        s=i.findAll('td', {'style': 'font-weight:bold;'})
+        result.append((name_parser(s[0].text), s[1].text, s[2].text, s[3].text))
+    return result
