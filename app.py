@@ -1,5 +1,4 @@
 import discord,os
-from discord.embeds import Embed
 from discord.ext.commands.errors import CommandInvokeError, CommandNotFound
 from simplejson.errors import JSONDecodeError
 import cricbotlib as cb
@@ -374,7 +373,7 @@ def fantasy_insight_embed(raw_data, fantasy_type):
 
 def state_selector():
     embed= discord.Embed(title='Election May 2021', color=0x03f8fc)
-    embed.add_field(name='React to Select state:', value='1. Assam\n2. Kerala\n3. Pudducherry\n4. West Bengal', inline=False)
+    embed.add_field(name='React to Select state:', value='1. Assam\n2. Kerala\n3.Tamil Nadu\n4. Pudducherry \n5. West Bengal', inline=False)
     embed.set_footer(text='sessionid:ESEL')
     return embed
 

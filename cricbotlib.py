@@ -336,6 +336,7 @@ def fantasy_insight(raw_data, fantasy_type):
     return buf
 
 def name_parser(string):
+    string=string.replace('(', '')
     t=string.split(' ')
     name=''
     for i in t:
