@@ -34,6 +34,9 @@ class command_formats:
 def string_padder(string):
     return string+('.'*(14-len(string)))
 
+def string_padder2(string):
+    return string+('　'*(3-int(len(string)/2)))
+
 def null_normalizer(arg):
     if arg=='': return '0'
     else: return arg
@@ -369,6 +372,23 @@ def fantasy_insight_embed(raw_data, fantasy_type):
     embed.set_image(url='attachment://img{}.png'.format(fantasy_type))
     return file, embed
 
+def state_selector():
+    embed= discord.Embed(title='Election May 2021', color=0x03f8fc)
+    embed.add_field(name='React to Select state:', value='1. Assam\n2. Kerala\n3. Pudducherry\n4. West Bengal', inline=False)
+    embed.set_footer(text='sessionid:ESEL')
+    return embed
+
+def election_embed(state_index):
+    string=''
+    states=['Assam', 'Kerala', 'Tamil Nadu', 'Pudducherry', 'West Bengal']
+    embed = discord.Embed(title='{0} Election Result May 2021'.format(states[state_index-1]), color=0x03f8fc)
+    data = cb.election_result(state_index)
+    for i in data:
+        string+='{}{:03n}　　{:03n}　　{:03n}\n'.format(string_padder2(i[0]), int(i[1]), int(i[2]), int(i[3]))
+    embed.add_field(name='Party     Won     Leading     Total', value=string, inline=False)
+    embed.set_footer(text='sessionid:ELREF-{0}'.format(state_index))
+    return embed
+
 bot=commands.Bot(command_prefix='.')
 bot.remove_command('help')
 
@@ -390,10 +410,12 @@ async def status_changer():
         try:
             s=cb.miniscore(0, data)
         except KeyError: s=''
-    except Exception as e: pass
-    score = '{0}-{1} ({2})'.format(s[4], s[5], s[6])
-    t = '{0} vs {1}'.format(s[7], s[8])
-    string = '{0} | {1}'.format(t, score)
+    except Exception: pass
+    try:
+        score = '{0}-{1} ({2})'.format(s[4], s[5], s[6])
+        t = '{0} vs {1}'.format(s[7], s[8])
+        string = '{0} | {1}'.format(t, score)
+    except IndexError: string = ''
     await bot.change_presence(activity=discord.Game(name=string))
 
 #events
@@ -690,6 +712,18 @@ async def on_reaction_add(reaction, user):
             await msg.add_reaction(num_emojis[1])
             await msg.add_reaction(num_emojis[2])
     
+        if 'ESEL' in sess_args[0]:
+            await message.edit(embed=election_embed(num_emojis.index(str(reaction))))
+            await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[2]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[3]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[4]), await bot.fetch_user(botid))
+            await message.remove_reaction(str(num_emojis[5]), await bot.fetch_user(botid))
+            await message.add_reaction(arrows_emojis[4])
+
+        if 'ELREF' in sess_args[0]:
+            await message.edit(embed=election_embed(int(sess_args[1])))
+            
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound):
@@ -883,6 +917,15 @@ async def fantasy_insight(ctx, match_index: int):
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
+
+@bot.command()
+async def election(ctx):
+    message=await ctx.send(embed=state_selector())
+    await message.add_reaction(num_emojis[1])
+    await message.add_reaction(num_emojis[2])
+    await message.add_reaction(num_emojis[3])
+    await message.add_reaction(num_emojis[4])
+    await message.add_reaction(num_emojis[5])
 
 #errors
 
