@@ -98,17 +98,19 @@ def schedule_embed(limit, raw_data, channel_id):
     return embed
 
 def score_embed(raw_data, match_index):
-    try: 
-        s0=cb.miniscore(0,raw_data)
-        s=cb.miniscore(1,raw_data)
-        embed = discord.Embed(title=s[2], color=0x03f8fc)
-        embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
-        embed.add_field(name='**Score**', value='{0} {1}-{2} ({3})\n{4} {5}-{6} ({7})\n**Status**: ***{8}***'.format(s[7],s[4],s[5],s[6],s0[7],s0[4],s0[5],s0[6], s0[9]), inline=False)
-    except Exception: 
-        s=cb.miniscore(0, raw_data)
-        embed = discord.Embed(title=s[2], color=0x03f8fc)
-        embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
-        embed.add_field(name='**Score**', value='{0} {1}-{2} ({3})\n**Status**: ***{4}***'.format(s[7],s[4],s[5],s[6], s[9]), inline=False)
+    score_string=''
+    i=0
+    while True:
+        try:
+            s=cb.miniscore(i,raw_data)
+            score_string += '{0} {1}-{2} ({3})\n**Status**: ***{4}***\n'.format(s[7],s[4],s[5],s[6], s[9])
+            i+=1
+        except Exception:
+            break
+        
+    embed = discord.Embed(title=s[2], color=0x03f8fc)
+    embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
+    embed.add_field(name='**Score**', value=score_string, inline=False)
     embed.set_footer(text='sessionid:MSC-{0}'.format(match_index))
     return embed
 
