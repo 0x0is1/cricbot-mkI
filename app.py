@@ -103,11 +103,11 @@ def score_embed(raw_data, match_index):
     while True:
         try:
             s=cb.miniscore(i,raw_data)
-            score_string += '{0} {1}-{2} ({3})\n**Status**: ***{4}***\n'.format(s[7],s[4],s[5],s[6], s[9])
+            score_string += '{0} {1}-{2} ({3})\n'.format(s[7],s[4],s[5],s[6])
             i+=1
         except Exception:
             break
-        
+    score_string+='**Status**: ***{0}***\n'.format(s[9])
     embed = discord.Embed(title=s[2], color=0x03f8fc)
     embed.add_field(name='{0} vs {1}'.format(s[7], s[8]), value='**Date**: {0}  **Time**:{1}\n**Venue**: {2}'.format(s[0],s[1],s[3]), inline=False)
     embed.add_field(name='**Score**', value=score_string, inline=False)
