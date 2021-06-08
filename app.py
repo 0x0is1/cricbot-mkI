@@ -91,7 +91,7 @@ def schedule_embed(limit, raw_data, channel_id):
             k=schedule[i]
         except (IndexError,KeyError):
             break
-        embed.add_field(name='{0}. {1}'.format(str(i+1),k[4]), value='{0} vs {1}\n**Date**: {2}  |  **Venue**: {3}\n*{4}*'.format(
+        embed.add_field(name='{0}. {1}'.format(str(i+1),k[4]), value='{0} vs {1}\n**Time**: {2}  |  **Venue**: {3}\n*{4}*'.format(
             k[0], k[1], k[5], k[8], k[6]), inline=False)
         a.append(k[9])
     ids_con[channel_id] = a
