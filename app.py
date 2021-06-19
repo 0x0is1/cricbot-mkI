@@ -403,7 +403,7 @@ async def status_changer():
         if 'ICC World Test Championship Final' in i[4]:
             preid = i[9]
             break
-    if preid = '':
+    if preid == '':
         preid = sh[0][9]
     url = 'https://cricket.yahoo.net/sifeeds/cricket/live/json/' + preid + '.json'
     data = cb.fetch(url)
