@@ -400,7 +400,7 @@ async def status_changer():
     sh = cb.schedule(40, cb.fetch(url))
     t,preid = '', ''
     for i in sh:
-        if 'Indian Premier League' in i[4]:
+        if 'ICC World Test Championship Final' in i[4]:
             preid = i[9]
             break
     url = 'https://cricket.yahoo.net/sifeeds/cricket/live/json/' + preid + '.json'
