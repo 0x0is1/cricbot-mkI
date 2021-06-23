@@ -407,13 +407,15 @@ async def status_changer():
         preid = sh[0][9]
     url = 'https://cricket.yahoo.net/sifeeds/cricket/live/json/' + preid + '.json'
     data = cb.fetch(url)
-    try: 
-        s=cb.miniscore(1,data)
-    except IndexError:
-        try:
-            s=cb.miniscore(0, data)
-        except KeyError: s=''
-    except Exception: pass
+    c=0
+    while True:
+        try: 
+            s=cb.miniscore(c,data)
+            c+=1
+        except IndexError:break
+        except KeyError: 
+            s=''
+            break
     try:
         score = '{0}-{1} ({2})'.format(s[4], s[5], s[6])
         t = '{0} vs {1}'.format(s[7], s[8])
