@@ -378,7 +378,7 @@ def state_selector():
     embed.add_field(name='React to Select State:', value='1. Assam\n2. Kerala\n3. Pudducherry\n4. Tamil Nadu\n5. West Bengal', inline=False)
     embed.set_footer(text='sessionid:ESEL')
     return embed
-
+'''
 def election_embed(state_index):
     string=''
     states=['Assam', 'Kerala', 'Pudducherry', 'Tamil Nadu', 'West Bengal']
@@ -389,6 +389,7 @@ def election_embed(state_index):
     embed.add_field(name='Party     Won     Leading     Total', value=string, inline=False)
     embed.set_footer(text='sessionid:ELREF-{0}'.format(state_index))
     return embed
+'''
 
 bot=commands.Bot(command_prefix='.')
 bot.remove_command('help')
@@ -716,7 +717,7 @@ async def on_reaction_add(reaction, user):
             msg=await channel.send(file=c[0], embed=embed)
             await msg.add_reaction(num_emojis[1])
             await msg.add_reaction(num_emojis[2])
-        ```   
+        '''  
         if 'ESEL' in sess_args[0]:
             await message.edit(embed=election_embed(num_emojis.index(str(reaction))))
             await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
@@ -728,7 +729,7 @@ async def on_reaction_add(reaction, user):
 
         if 'ELREF' in sess_args[0]:
             await message.edit(embed=election_embed(int(sess_args[1])))
-        ```
+        '''
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound):
@@ -922,7 +923,7 @@ async def fantasy_insight(ctx, match_index: int):
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
-```
+'''
 @bot.command()
 async def election(ctx):
     message=await ctx.send(embed=state_selector())
@@ -931,7 +932,8 @@ async def election(ctx):
     await message.add_reaction(num_emojis[3])
     await message.add_reaction(num_emojis[4])
     await message.add_reaction(num_emojis[5])
-```
+'''
+
 #errors
 
 @schedule.error
