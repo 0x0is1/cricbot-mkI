@@ -34,9 +34,9 @@ def schedule(limit: int, raw_data: dict):
             team_names('id', i, 0),
             team_names('id', i, 1),
             event_fetch(i, 'series_name'),
-            event_fetch(i, 'start_date').split('+')[1],
+            event_fetch(i, 'start_date').split('T')[1],
             event_fetch(i, 'event_sub_status'),
-            event_fetch(i, 'start_date'),
+            event_fetch(i, 'start_date').split('T')[0],
             event_fetch(i, 'venue_name'),
             event_fetch(i, 'game_id')
             )
