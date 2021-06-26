@@ -347,7 +347,7 @@ def name_parser(string):
     if name=='CPoI(':
         name='CPI(M)'
     return name
-```
+'''
 def election_result(state_index):
     result = []
     states_codes = {1: 'S03', 2: 'S11', 3: 'U07', 4: 'S22', 5: 'S25'}
@@ -359,4 +359,4 @@ def election_result(state_index):
         s=i.findAll('td', {'style': 'font-weight:bold;'})
         result.append((name_parser(s[0].text), s[1].text, s[2].text, s[3].text))
     return result
-```
+'''
