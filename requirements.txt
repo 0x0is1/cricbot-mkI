@@ -4,4 +4,3 @@ matplotlib
 pillow
 numpy
 simplejson
-bs4
