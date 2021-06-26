@@ -716,7 +716,7 @@ async def on_reaction_add(reaction, user):
             msg=await channel.send(file=c[0], embed=embed)
             await msg.add_reaction(num_emojis[1])
             await msg.add_reaction(num_emojis[2])
-    
+        ```   
         if 'ESEL' in sess_args[0]:
             await message.edit(embed=election_embed(num_emojis.index(str(reaction))))
             await message.remove_reaction(str(num_emojis[1]), await bot.fetch_user(botid))
@@ -728,7 +728,7 @@ async def on_reaction_add(reaction, user):
 
         if 'ELREF' in sess_args[0]:
             await message.edit(embed=election_embed(int(sess_args[1])))
-            
+        ```
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound):
@@ -922,7 +922,7 @@ async def fantasy_insight(ctx, match_index: int):
     await message.add_reaction(num_emojis[1])
     await message.add_reaction(num_emojis[2])
 
-
+```
 @bot.command()
 async def election(ctx):
     message=await ctx.send(embed=state_selector())
@@ -931,7 +931,7 @@ async def election(ctx):
     await message.add_reaction(num_emojis[3])
     await message.add_reaction(num_emojis[4])
     await message.add_reaction(num_emojis[5])
-
+```
 #errors
 
 @schedule.error
