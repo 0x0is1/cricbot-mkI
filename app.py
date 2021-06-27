@@ -401,7 +401,7 @@ async def status_changer():
     sh = cb.schedule(40, cb.fetch(url))
     t,preid = '', ''
     for i in sh:
-        if 'ICC World Test Championship Final' in i[4]:
+        if 'india' in i[4]:
             preid = i[9]
             break
     if preid == '':
@@ -415,7 +415,7 @@ async def status_changer():
             c+=1
         except IndexError:break
         except KeyError: 
-            s=''
+            s='No live matches currently'
             break
     try:
         score = '{0}-{1} ({2})'.format(s[4], s[5], s[6])
