@@ -421,7 +421,7 @@ async def status_changer():
         score = '{0}-{1} ({2})'.format(s[4], s[5], s[6])
         t = '{0} vs {1}'.format(s[7], s[8])
         string = '{0} | {1}'.format(t, score)
-    except IndexError: string = ''
+    except IndexError: string = 'No matches live currently.'
     await bot.change_presence(activity=discord.Game(name=string))
 
 #events
