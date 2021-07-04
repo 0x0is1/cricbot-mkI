@@ -399,17 +399,21 @@ async def status_changer():
     cshtype = 1
     url = 'https://cricket.yahoo.net/sifeeds/multisport/?methodtype=3&client=24&sport=1&league=0&timezone=0530&language=en&gamestate='+str(cshtype)
     sh = cb.schedule(40, cb.fetch(url))
-    t,preid = '', ''
+    t,preid,ie = '', '', True
     for i in sh:
-        if 'india' in i[4]:
+        if 'India' in i[4]:
             preid = i[9]
             break
     if preid == '':
-        preid = sh[0][9]
+        try:
+            preid = sh[0][9]
+        except IndexError:
+            preid = 'abcd'
+            ie=False
     url = 'https://cricket.yahoo.net/sifeeds/cricket/live/json/' + preid + '.json'
     data = cb.fetch(url)
     c=0
-    while True:
+    while ie:
         try: 
             s=cb.miniscore(c,data)
             c+=1
@@ -418,6 +422,8 @@ async def status_changer():
             s='No live matches currently'
             break
     try:
+        if ie==False:
+            raise IndexError
         score = '{0}-{1} ({2})'.format(s[4], s[5], s[6])
         t = '{0} vs {1}'.format(s[7], s[8])
         string = '{0} | {1}'.format(t, score)
