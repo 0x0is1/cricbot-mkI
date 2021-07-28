@@ -59,9 +59,9 @@ Send feedback or bug report to our developers on this [mail id](0x0is1@protonmai
 ![preview-2](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_175941.png)
 * Boundries
 ![preview-3](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180045.png)
-* Fall of wickets
-![preview-4](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180100.png)
 * Schedule
+![preview-4](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180100.png)
+* Fall of wickets
 ![preview-5](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180117.png)
 * Partnership
 ![preview-6](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180133.png)
