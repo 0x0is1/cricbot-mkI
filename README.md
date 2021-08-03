@@ -53,18 +53,18 @@ Any device that can run Python3.5+ including raspberry pi and other OS'es.
 Send feedback or bug report to our developers on this [mail id](0x0is1@protonmail.com).
 
 ## Previews
-* Heatmap
-![preview-1](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180028.png)
-* Fantasy Insight
-![preview-2](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_175941.png)
-* Boundries
-![preview-3](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180045.png)
-* Schedule
-![preview-4](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180100.png)
-* Fall of wickets
-![preview-5](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180117.png)
-* Partnership
-![preview-6](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180133.png)
-* Score
-![preview-7](https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180152.png)
+* Heatmap <br>
+<img src="https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180028.png" width=30% height=30%> </img>
+* Fantasy Insight<br>
+<img src="https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_175941.png" width=30% height=30%> </img>
+* Boundries <br>
+<img src="https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180045.png" width=30% height=30%> </img>
+* Schedule<br>
+<img src="https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180100.png" width=30% height=30%> </img>
+* Fall of wickets<br>
+<img src="https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180117.png" width=30% height=30%> </img>
+* Partnership<br>
+<img src="https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180133.png" width=30% height=30%> </img>
+* Score<br>
+<img src="https://raw.githubusercontent.com/0x0is1/inproject-asset-container/master/20210713_180152.png" width=30% height=30%> </img>
 
