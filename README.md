@@ -1,4 +1,6 @@
 # Cricbot - yahoo! cricket info provider discord bot
+### *ATTENTION! We are closing this project due to API shut down by Yahoo! cricket. Please wait for next version of cricbot [(cricbot-mkII)](https://github.com/0x0is1/cricbot-mkII).*
+![image](https://user-images.githubusercontent.com/42772562/131855545-1579a7bf-560c-40ae-b2ed-6a3a0f7b40ae.png)
 
 ## Description
 Cricbot is a discord bot made with [Cricbot API](https://github.com/0x0is1/cricbot-api) developed by [0x0is1](https://github.com/0x0is1) to provide all live data from yahoo! Cricket directly to your discord server.
