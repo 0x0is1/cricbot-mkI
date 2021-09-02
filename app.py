@@ -401,7 +401,7 @@ async def status_changer():
     sh = cb.schedule(40, cb.fetch(url))
     t,preid,ie = '', '', True
     for i in sh:
-        if 'Pataudi' in i[4]:
+        if 'India' in i[4]:
             preid = i[9]
             break
     if preid == '':
